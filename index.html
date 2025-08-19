@@ -140,6 +140,16 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 .coin header{ align-items:center; }
 .price-inline{ font-weight:700; margin-left:auto; }
 
+
+/* === Crypto‑Pulse tiles === */
+.pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.pulse-grid .tile{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px}
+.pulse-grid .klabel{font-size:12px;color:var(--muted)}
+.pulse-grid .kval{font-size:22px;font-weight:700;margin-top:2px}
+.pulse-grid .ksub{font-size:12px;color:var(--muted);margin-top:2px}
+.pulse-grid .red .kval{color:#ef4444}
+.pulse-grid .green .kval{color:#22c55e}
+.pulse-grid .yellow .kval{color:#eab308}
 </style>
 </head>
 <body>
@@ -165,6 +175,21 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
     <div id="coinGrid" class="kacheln"></div>
     <div id="topNote" class="hint small"></div>
   </section>
+  <section id="crypto-pulse" class="card" style="margin-top:12px">
+    <header class="row between center">
+      <div class="title">Krypto‑Pulse (kompakt)</div>
+      <div class="small muted" id="pulseStatus">lädt…</div>
+    </header>
+    <div id="pulseGrid" class="grid pulse-grid">
+      <div class="tile" id="pulse-btcdom"><div class="klabel">BTC‑Dominanz</div><div class="kval">–</div><div class="ksub"></div></div>
+      <div class="tile" id="pulse-ethbtc"><div class="klabel">ETH/BTC</div><div class="kval">–</div><div class="ksub"></div></div>
+      <div class="tile" id="pulse-stables"><div class="klabel">Stable‑Power</div><div class="kval">–</div><div class="ksub"></div></div>
+      <div class="tile" id="pulse-funding"><div class="klabel">Funding BTC/ETH</div><div class="kval">–</div><div class="ksub"></div></div>
+      <div class="tile" id="pulse-breadth"><div class="klabel">Breadth 7d</div><div class="kval">–</div><div class="ksub"></div></div>
+      <div class="tile" id="pulse-mempool"><div class="klabel">BTC Fees</div><div class="kval">–</div><div class="ksub"></div></div>
+    </div>
+  </section>
+
 
   <!-- Fear & Greed -->
   <section class="section" aria-labelledby="h-fgi">
@@ -198,12 +223,13 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
           <span class="hint small">Wird lokal im Browser gespeichert.</span>
         </div>
       </div>
-      <div class="hint small">Quellen (nur Referenzen): 
-        <a href="https://www.google.com/finance/" target="_blank" rel="noopener">Google Finance</a> · 
-        <a href="https://seekingalpha.com/" target="_blank" rel="noopener">Seeking Alpha</a> · 
-        <a href="https://finance.yahoo.com/" target="_blank" rel="noopener">Yahoo Finance</a> · 
-        <a href="https://www.msn.com/money" target="_blank" rel="noopener">MSN Money</a>
-      </div>
+      <div class="hint small">Quellen (nur Referenzen):
+  <a href="https://www.coingecko.com/en/api/documentation" target="_blank" rel="noopener">CoinGecko API</a> ·
+  <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> ·
+  <a href="https://exchangerate.host/#/" target="_blank" rel="noopener">exchangerate.host (FX)</a> ·
+  <a href="https://api.alternative.me/fng/" target="_blank" rel="noopener">Fear & Greed (alternative.me)</a> ·
+  <a href="https://binance-docs.github.io/apidocs/spot/en/#24hr-ticker-price-change-statistics" target="_blank" rel="noopener">Binance 24h Ticker</a> · <a href="https://binance-docs.github.io/apidocs/futures/en/#get-mark-price-and-funding-rate" target="_blank" rel="noopener">Binance Futures Funding</a> · <a href="https://mempool.space/api" target="_blank" rel="noopener">mempool.space API</a>
+</div>
     </details>
   </section>
 
@@ -385,6 +411,108 @@ function setAutoReload(enabled){
 }
 
 // ========= Data =========
+
+// === Crypto‑Pulse (kompakt) ===
+const STABLE_SYMS = new Set(['USDT','USDC','FDUSD','TUSD','DAI','USDP','USDD','PYUSD','GUSD','EURS','EURT']);
+const STABLE_ID_PARTS = ['tether','usd-coin','binance-usd','dai','true-usd','pax','usdd','pyusd','gusd','euro-','eur-','fdusd'];
+function isStableCoin(row){
+  try{
+    const sym = String(row.symbol||'').toUpperCase();
+    const id  = String(row.id||'').toLowerCase();
+    const name= String(row.name||'').toLowerCase();
+    if(STABLE_SYMS.has(sym)) return true;
+    return STABLE_ID_PARTS.some(p=> id.includes(p) || name.includes(p));
+  }catch(_){ return false; }
+}
+function fmtPct(v){ if(v==null||!isFinite(v)) return '–'; const s=(v>=0?'+':'')+v.toFixed(1)+'%'; return s; }
+function setPulseTile(id, {val, sub, state}){
+  const el = document.getElementById(id); if(!el) return;
+  el.classList.remove('red','green','yellow');
+  if(state) el.classList.add(state);
+  const kval = el.querySelector('.kval'), ksub = el.querySelector('.ksub');
+  if(kval) kval.textContent = val!=null? String(val) : '–';
+  if(ksub) ksub.textContent = sub||'';
+}
+async function fetchFunding(){
+  try{
+    const [b,e] = await Promise.all([
+      fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT',{timeoutMs:7000}).then(r=>r.json()),
+      fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=ETHUSDT',{timeoutMs:7000}).then(r=>r.json())
+    ]);
+    const fB = (parseFloat(b.lastFundingRate||b.fundingRate)||0)*100;
+    const fE = (parseFloat(e.lastFundingRate||e.fundingRate)||0)*100;
+    return {btc:fB, eth:fE, next:new Date(+b.nextFundingTime||+e.nextFundingTime||Date.now())};
+  }catch(_){ return {btc:null,eth:null,next:null}; }
+}
+async function fetchFees(){
+  try{
+    const j = await fetchWithTimeout('https://mempool.space/api/v1/fees/recommended',{timeoutMs:7000}).then(r=>r.json());
+    const hi = j.fastestFee??j.high_priority??null;
+    const lo = j.hourFee??j.economyFee??null;
+    return {fast:hi, hour:lo};
+  }catch(_){ return {fast:null,hour:null}; }
+}
+function updateCryptoPulse(srcTag){
+  const coins = Array.isArray(lastCoins)? lastCoins : [];
+  const exStable = coins.filter(c=> !isStableCoin(c) );
+  const withMc = exStable.filter(c=> typeof c.mc==='number' && isFinite(c.mc) && c.mc>0);
+  const totalMc = withMc.reduce((a,c)=> a+(c.mc||0), 0);
+  const btc = coins.find(c=> (String(c.id||'').toLowerCase()==='bitcoin' || String(c.symbol||'').toUpperCase()==='BTC'));
+  const eth = coins.find(c=> (String(c.id||'').toLowerCase()==='ethereum' || String(c.symbol||'').toUpperCase()==='ETH'));
+  // 1) BTC Dominance
+  let dom = null;
+  if(btc && totalMc>0 && typeof btc.mc==='number') dom = (btc.mc/totalMc)*100;
+  setPulseTile('pulse-btcdom', {
+    val: dom!=null? dom.toFixed(1)+'%' : '–',
+    sub: srcTag==='BINANCE' ? 'n.v. (ohne MC)' : (dom!=null? 'ex‑Stable, Top‑N' : 'Daten unvollständig'),
+    state: (dom!=null? (dom>=55?'yellow':(dom<=45?'green':null)) : null)
+  });
+  // 2) ETH/BTC
+  const ratio = (btc&&eth && btc.price>0 && eth.price>0) ? (eth.price/btc.price) : null;
+  setPulseTile('pulse-ethbtc', {
+    val: ratio!=null? ratio.toFixed(3) : '–',
+    sub: 'Preis‑Ratio',
+    state: ratio!=null? (ratio>=0.06? 'green' : (ratio<0.05? 'red': null)) : null
+  });
+  // 3) Stable‑Power
+  const stables = coins.filter(isStableCoin).filter(c=> typeof c.mc==='number' && c.mc>0);
+  const stableMc = stables.reduce((a,c)=> a+(c.mc||0), 0);
+  const share = (stableMc>0 && (stableMc+totalMc)>0) ? (stableMc/(stableMc+totalMc))*100 : null;
+  setPulseTile('pulse-stables', {
+    val: share!=null? share.toFixed(1)+'%' : '–',
+    sub: srcTag==='BINANCE' ? 'n.v. (ohne MC)' : 'Anteil an Top‑N',
+    state: share!=null? (share>=25?'yellow':(share<=12?'green':null)) : null
+  });
+  // 5) Breadth 7d
+  const has7 = exStable.filter(c=> typeof c.ch7==='number').length;
+  const green7 = exStable.filter(c=> typeof c.ch7==='number' && c.ch7>0).length;
+  const breadth = has7>0 ? (green7/has7)*100 : null;
+  setPulseTile('pulse-breadth', {
+    val: breadth!=null? breadth.toFixed(0)+'%' : '–',
+    sub: has7>0? `${green7}/${has7} im Plus` : 'n.v.',
+    state: breadth!=null? (breadth>=60?'green':(breadth<40?'red':'yellow')) : null
+  });
+  // Status
+  const st = document.getElementById('pulseStatus');
+  if(st) st.textContent = 'Quelle: '+ (srcTag||'–');
+}
+async function refreshPulseExtras(){
+  // 4) Funding
+  const f = await fetchFunding();
+  const fTxt = (v)=> v==null? '–' : (v>=0?'+':'')+v.toFixed(3)+'%';
+  const next = f.next ? new Date(f.next) : null;
+  const sub = next ? ('nächste: '+ new Date(next).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})) : '';
+  const stateB = f.btc!=null? (f.btc>0.05?'red':(f.btc<-0.01?'green':null)) : null;
+  const stateE = f.eth!=null? (f.eth>0.05?'red':(f.eth<-0.01?'green':null)) : null;
+  setPulseTile('pulse-funding', { val: `BTC ${fTxt(f.btc)} · ETH ${fTxt(f.eth)}`, sub, state: stateB||stateE });
+  // 6) Mempool fees
+  const fees = await fetchFees();
+  const sub2 = fees.hour!=null? `~1h: ${fees.hour} sat/vB` : '';
+  const st2 = fees.fast!=null? (fees.fast>60?'red':(fees.fast<15?'green':null)) : null;
+  setPulseTile('pulse-mempool', { val: fees.fast!=null? `${fees.fast} sat/vB`:'–', sub: sub2, state: st2 });
+}
+
+
 async function fetchWithTimeout(url,opts={}){
   const t=opts.timeoutMs||9000; const retries=(opts.retries==null)?1:opts.retries;
   for(let a=0;a<=retries;a++){
@@ -394,6 +522,96 @@ async function fetchWithTimeout(url,opts={}){
       if(!res.ok) throw new Error('HTTP '+res.status);
       return res;
     }catch(e){ clearTimeout(id); if(a===retries) throw e; await new Promise(r=>setTimeout(r,400*(a+1))); }
+
+
+// --- Fallback helpers: FX + CoinLore + Binance ---
+async function fxUSDto(ccy){
+  ccy = (ccy||'EUR').toUpperCase();
+  if(ccy === 'USD') return 1;
+  try{
+    const r = await fetchWithTimeout(`https://api.exchangerate.host/convert?from=USD&to=${encodeURIComponent(ccy)}`, {timeoutMs:8000});
+    const j = await r.json();
+    const res = (j && typeof j.result === 'number') ? j.result : 1;
+    return res || 1;
+  }catch(_){ return 1; }
+}
+
+function mapCoinLoreToList(data, n, ccy, fx){
+  const arr = Array.isArray(data?.data) ? data.data : [];
+  const filtered = arr.filter(it=>{
+    const id = String(it.nameid||'').toLowerCase();
+    return !(STABLE_IDS && typeof STABLE_IDS.has==='function' && STABLE_IDS.has(id));
+  }).slice(0, n);
+
+  const sumMc = filtered.reduce((a,c)=> a + (((+c.market_cap_usd)||0)*fx), 0) || 1;
+
+  return filtered.map(c=>({
+    id: String(c.nameid||c.symbol||'').toLowerCase(),
+    name: c.name,
+    symbol: String(c.symbol||'').toUpperCase(),
+    image: "",
+    price: ((+c.price_usd)||0)*fx,
+    ch24:  (+c.percent_change_24h)||0,
+    ch7:   (c.percent_change_7d==null)?null:(+c.percent_change_7d||0),
+    mc:    ((+c.market_cap_usd)||0)*fx,
+    vol24: ((+c.volume24)||0)*fx,
+    dominance: (((+c.market_cap_usd||0)*fx)/sumMc)*100,
+    spark7: [],
+    athDraw: null
+  }));
+}
+
+async function loadFromCoinLore(n, ccy){
+  const url = `https://api.coinlore.net/api/tickers/?start=0&limit=${Math.min(250, n+20)}`;
+  const r = await fetchWithTimeout(url, {timeoutMs:9000});
+  if(!r.ok) throw new Error('CoinLore HTTP '+r.status);
+  const j = await r.json();
+  const fx = await fxUSDto(ccy);
+  return mapCoinLoreToList(j, n, ccy, fx);
+}
+
+// Binance 24h ticker (USDT pairs) as last-resort price fallback
+async function loadFromBinance(n, ccy){
+  const r = await fetchWithTimeout('https://api.binance.com/api/v3/ticker/24hr', {timeoutMs:9000});
+  if(!r.ok) throw new Error('Binance HTTP '+r.status);
+  const arr = await r.json();
+  // USDT pairs only, exclude leveraged & stablecoin bases
+  const STABLE_BASES = new Set(['USDT','USDC','FDUSD','TUSD','DAI','USDP','USDD','PYUSD','GUSD','EURS','EURT']);
+  const badSuffix = ['UPUSDT','DOWNUSDT','BULLUSDT','BEARUSDT'];
+  const isBad = (sym)=> badSuffix.some(sfx=> sym.endsWith(sfx));
+  const rows = (Array.isArray(arr)?arr:[])
+   .filter(o=> typeof o.symbol==='string' && o.symbol.endsWith('USDT') && !isBad(o.symbol))
+   .map(o=>{
+      const sym = o.symbol.replace('USDT','');
+      if(STABLE_BASES.has(sym)) return null;
+      return {
+        base: sym,
+        last: +o.lastPrice || 0,
+        ch24: +o.priceChangePercent || 0,
+        qvol: +o.quoteVolume || 0
+      };
+   }).filter(Boolean)
+   .sort((a,b)=> b.qvol - a.qvol)
+   .slice(0, n);
+
+  const fx = await fxUSDto(ccy);
+  const list = rows.map(r=>({
+    id: r.base.toLowerCase(),
+    name: r.base,
+    symbol: r.base,
+    image: "",
+    price: r.last * fx,          // USDT≈USD → FX to ccy
+    ch24:  r.ch24,
+    ch7:   null,
+    mc:    null,
+    vol24: r.qvol * fx,          // quote vol in USDT
+    dominance: null,
+    spark7: [],
+    athDraw: null
+  }));
+  return list;
+}
+
   }
 }
 
@@ -401,8 +619,7 @@ async function loadTrending(){
   try{ const r=await fetchWithTimeout('https://api.coingecko.com/api/v3/search/trending',{timeoutMs:8000}); const j=await r.json(); trendingIds=new Set((j.coins||[]).map(x=>x.item&&x.item.id).filter(Boolean)); }catch(e){}
 }
 
-async function loadTopCoins(){
-  const get = (sel)=>{ try { return q ? q(sel) : document.querySelector(sel); } catch(_) { return null; } };
+async function loadTopCoins(){const get = (sel)=>{ try { return q ? q(sel) : document.querySelector(sel); } catch(_) { return null; } };
   const setText = (sel,txt)=>{ const el=get(sel); if(el) el.textContent=txt; };
   const setHTML = (sel,html)=>{ const el=get(sel); if(el) el.innerHTML=html; };
 
@@ -419,51 +636,83 @@ async function loadTopCoins(){
     `&order=market_cap_desc&per_page=${per}&page=1`+
     `&sparkline=true&price_change_percentage=24h,7d`;
 
-  try{
-    const doFetch = (typeof fetchWithTimeout==='function')
-      ? (u)=>fetchWithTimeout(u,{timeoutMs:9000})
-      : (u)=>fetch(u,{cache:'no-store'});
+  const doFetch = (typeof fetchWithTimeout==='function')
+    ? (u)=>fetchWithTimeout(u,{timeoutMs:9000})
+    : (u)=>fetch(u,{cache:'no-store'});
 
-    const r = await doFetch(url);
-    if(!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    const arr = Array.isArray(data) ? data : [];
+  // --- 1) CoinGecko primary
+  (async ()=>{
+    try{
+      const r = await doFetch(url);
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      const arr = Array.isArray(data) ? data : [];
 
-    const isStable = (id)=> !!(STABLE_IDS && typeof STABLE_IDS.has==='function' && STABLE_IDS.has(id));
-    const filtered = arr.filter(c=>!isStable(c.id)).slice(0, n);
+      const isStable = (id)=> !!(STABLE_IDS && typeof STABLE_IDS.has==='function' && STABLE_IDS.has(id));
+      const filtered = arr.filter(c=>!isStable(c.id)).slice(0, n);
+      const sumMc = filtered.reduce((a,c)=> a + (+c.market_cap||0), 0) || 1;
 
-    const sumMc = filtered.reduce((a,c)=>a + (+c.market_cap||0), 0) || 1;
+      const list = filtered.map(c=>({
+        id:c.id, name:c.name, symbol:String(c.symbol||'').toUpperCase(), image:c.image||'',
+        price:+c.current_price||0, ch24:+(c.price_change_percentage_24h||0), ch7:+(c.price_change_percentage_7d_in_currency||0),
+        mc:+c.market_cap||0, vol24:+c.total_volume||0, dominance: ((+c.market_cap||0)/sumMc)*100,
+        spark7:(c.sparkline_in_7d && Array.isArray(c.sparkline_in_7d.price))?c.sparkline_in_7d.price:[],
+        athDraw:(typeof c.ath_change_percentage==='number')?Math.abs(c.ath_change_percentage):null
+      }));
 
-    const list = filtered.map(c=>({
-      id: c.id,
-      name: c.name,
-      symbol: String(c.symbol||'').toUpperCase(),
-      image: c.image,
-      price: +c.current_price || 0,
-      ch24:  (typeof c.price_change_percentage_24h==='number') ? c.price_change_percentage_24h : 0,
-      ch7:   (typeof c.price_change_percentage_7d_in_currency==='number') ? c.price_change_percentage_7d_in_currency : 0,
-      mc:    +c.market_cap || 0,
-      vol24: +c.total_volume || 0,
-      dominance: ((+c.market_cap||0)/sumMc)*100,
-      spark7: (c.sparkline_in_7d && Array.isArray(c.sparkline_in_7d.price)) ? c.sparkline_in_7d.price : [],
-      athDraw: (typeof c.ath_change_percentage==='number') ? Math.abs(c.ath_change_percentage) : null
-    }));
+      lastCoins = list;
+      renderTopCoins(list);
+      const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const now = nowV();
+      setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
+      setText('#topNLabel', `Top-${n} Coins`);
+      setHTML('#topNote', `<span class="ok">Quelle:</span> CoinGecko · Stablecoins ausgeschlossen · Währung: <b>${cur}</b>`);
+      setText('#globalStatus', 'Fertig');
+      try{ updateCryptoPulse('COINGECKO'); refreshPulseExtras(); }catch(_){/*noop*/}
 
-    lastCoins = list;           // expects global
-    renderTopCoins(list);       // expects function
+    }catch(e1){
+      console.warn('CoinGecko fehlgeschlagen – Fallback CoinLore', e1);
 
-    const tz = (typeof TZ==='string' && TZ) ? TZ : Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const now = (typeof nowV==='function') ? nowV() : new Date();
+      // --- 2) CoinLore fallback
+      (async ()=>{
+        try{
+          const list = await loadFromCoinLore(n, cur);
+          lastCoins = list;
+          renderTopCoins(list);
+          const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const now = nowV();
+          setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
+          setText('#topNLabel', `Top-${n} Coins`);
+          setHTML('#topNote', `<span class="ok">Quelle:</span> CoinLore + exchangerate.host (FX) · Stablecoins ausgeschlossen · Währung: <b>${cur}</b>`);
+          setText('#globalStatus', 'Fertig (Fallback 2 aktiv)');
+        try{ updateCryptoPulse('COINLORE'); refreshPulseExtras(); }catch(_){}
 
-    setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
-    setText('#topNLabel', `Top-${n} Coins`);
-    setHTML('#topNote', `<span class="ok">Quelle:</span> CoinGecko · Stablecoins ausgeschlossen · Währung: <b>${cur}</b>`);
-    setText('#globalStatus', 'Fertig');
-  }catch(e){
-    setText('#globalStatus','Fehler beim Laden der Märkte.');
-    console.error('loadTopCoins failed:', e);
-  }
+        }catch(e2){
+          console.warn('CoinLore fehlgeschlagen – Fallback Binance', e2);
+
+          // --- 3) Binance fallback (price only)
+          try{
+            const list = await loadFromBinance(n, cur);
+            lastCoins = list;
+            renderTopCoins(list);
+            const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const now = nowV();
+            setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
+            setText('#topNLabel', `Top-${n} Coins`);
+            setHTML('#topNote', `<span class="warn">Quelle:</span> Binance 24h Ticker (nur Preis/%24h, ohne MC/Sparkline) + FX · Währung: <b>${cur}</b>`);
+            setText('#globalStatus', 'Fertig (Fallback 3 aktiv)');
+            try{ updateCryptoPulse('BINANCE'); refreshPulseExtras(); }catch(_){/*noop*/}
+
+          }catch(e3){
+            console.error('Alle Quellen fehlgeschlagen:', e3);
+            setText('#globalStatus','Fehler beim Laden (alle Quellen).');
+          }
+        }
+      })();
+    }
+  })();
 }
+
 
 
 async function loadFGI(){
