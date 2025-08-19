@@ -150,6 +150,15 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 .pulse-grid .red .kval{color:#ef4444}
 .pulse-grid .green .kval{color:#22c55e}
 .pulse-grid .yellow .kval{color:#eab308}
+
+/* compact bullets for KI-Themen */
+ul.bullets{ list-style:none; padding-left:0; margin:6px 0 }
+ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
+#geoTopicsList li{ font-size:.9rem; }
+#geoToolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:.25rem 0 .5rem 0 }
+#geoToolbar .muted{ font-size:.8rem }
+#geoSrcList{ font-size:.8rem; color:var(--muted); margin-top:4px }
+
 </style>
 </head>
 <body>
@@ -213,7 +222,7 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
   <div class="title small">KI-Themen (alle 4 h, kompakt)</div>
   <div class="small muted" id="geoFeedStatus">bereit</div>
 </div>
-<ul id="geoTopicsList" class="bullets"></ul>
+<ul id="geoTopicsList" class="bullets small"></ul>
 <button id="geoReloadBtn" class="btn small" type="button">↻ Neu laden</button>
 <pre id="geoError" style="display:none;font-size:.85em;color:#f87171;background:#111827;padding:.5rem;border-radius:.375rem;white-space:pre-wrap"></pre>
 
@@ -292,6 +301,8 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
           <div class="seg">
             <input type="radio" id="ccy_eur" name="ccy" value="EUR"><label for="ccy_eur">EUR</label>
             <input type="radio" id="ccy_usd" name="ccy" value="USD"><label for="ccy_usd">USD</label>
+            <input type="radio" id="ccy_gbp" name="ccy" value="GBP"><label for="ccy_gbp">GBP</label>
+            <input type="radio" id="ccy_jpy" name="ccy" value="JPY"><label for="ccy_jpy">JPY</label>
           </div>
           <div class="small" style="margin-top:8px">Anzahl Coins</div>
           <div class="seg">
@@ -419,6 +430,29 @@ function setAutoReload(enabled){
 }
 
 
+
+// ---- Geo/Macro language preference + sources ----
+let GEO_LANG = (localStorage.getItem('geoLang') || 'en'); // English preferred by default
+function applyGeoLangUI(){
+  const sel = q('#geoLangSel'); if(sel){ sel.value = GEO_LANG; sel.addEventListener('change',()=>{
+    GEO_LANG = sel.value; localStorage.setItem('geoLang', GEO_LANG);
+    updateGeoTopics(true);
+  });}
+}
+function normalizeBulletsForLang(bullets, lang){
+  // Keep as-is; server should honor language. As fallback, we just return given bullets.
+  return bullets || [];
+}
+function renderGeoSources(items){
+  try{
+    const box = q('#geoSrcList'); if(!box) return;
+    const domains = Array.from(new Set(items.map(it => (it.domain || new URL(it.url).hostname).replace(/^www\./,''))));
+    const max = Math.min(6, domains.length);
+    const parts = domains.slice(0,max).map(d => `<a href="https://${d}" target="_blank" rel="noopener">${d}</a>`);
+    box.innerHTML = parts.length ? `Quellen: ${parts.join(' · ')}` : '';
+  }catch(_){}
+}
+
 // === KI‑gestützte Geo/Makro‑Themen (4h, kompakt) ===
 async function fetchGeoFeed(){ try{
   const r = await fetch('/api/geo_feed', {cache:'no-store'});
@@ -437,7 +471,7 @@ function renderGeoTopicsCompact(items, bullets){
     const a = document.createElement('a'); a.href = it.url; a.target='_blank'; a.rel='noopener';
     const domain = it.domain || (new URL(it.url)).hostname.replace(/^www\./,'');
     a.textContent = `${domain} – ${ (it.title||'').trim().slice(0,120) }`;
-    li.textContent = `. Thema #${idx} ${b} (`;
+    li.textContent = `• ${b} (`;
     li.appendChild(a);
     li.appendChild(document.createTextNode(')'));
     list.appendChild(li);
@@ -451,6 +485,7 @@ async function updateGeoTopics(force=false){
     const j = JSON.parse(localStorage.getItem('geoTopicsCacheCompact')||'{}');
     if(!force && j.ts && (Date.now()-j.ts) < 4*60*60*1000 && Array.isArray(j.items) && Array.isArray(j.bullets)){
       renderGeoTopicsCompact(j.items, j.bullets);
+    renderGeoSources(j.items);
       if(st) st.textContent = 'aus Cache';
       return;
     }
@@ -464,10 +499,10 @@ async function updateGeoTopics(force=false){
       const titles = items.map(it=> it.title || it.domain || 'Quelle');
       const r = await fetch('/api/summary', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ mode:'list', titles })
+        body: JSON.stringify({ mode:'list', lang: GEO_LANG, titles })
       });
       const j = await r.json();
-      if(Array.isArray(j.bullets)) bullets = j.bullets.slice(0, items.length);
+      if(Array.isArray(j.bullets)) bullets = normalizeBulletsForLang(j.bullets.slice(0, items.length), GEO_LANG);
     }catch(e){ console.warn('summary error:', e); }
   }
   // Fallback: kurze Titel
@@ -476,6 +511,7 @@ async function updateGeoTopics(force=false){
   }
   if(items.length && bullets.length){
     renderGeoTopicsCompact(items, bullets);
+    renderGeoSources(items);
     try{ localStorage.setItem('geoTopicsCacheCompact', JSON.stringify({ts:Date.now(), items, bullets})); }catch(_){}
     if(st) st.textContent = 'aktualisiert';
   }else{
@@ -999,6 +1035,8 @@ async function boot(){
 // ========= Events =========
 window.addEventListener('resize', layoutPad);
 document.addEventListener('DOMContentLoaded', layoutPad);
+applyGeoLangUI();
+const geoBtn=q('#geoReloadBtn'); if(geoBtn){ geoBtn.addEventListener('click', ()=>updateGeoTopics(true)); }
 
 q('#refreshBtn').addEventListener('click', ()=>{ if(AUTO_RELOAD){ nextReloadAt=Date.now()+AUTO_MIN*60*1000; } boot(); });
 q('#openSettingsBtn').addEventListener('click', openSettings);
