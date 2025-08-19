@@ -621,8 +621,6 @@ async function loadFromBinance(n, ccy){
   return list;
 }
 
-  }
-}
 
 async function loadTrending(){
   try{ const r=await fetchWithTimeout('https://api.coingecko.com/api/v3/search/trending',{timeoutMs:8000}); const j=await r.json(); trendingIds=new Set((j.coins||[]).map(x=>x.item&&x.item.id).filter(Boolean)); }catch(e){}
