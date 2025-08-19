@@ -16,7 +16,7 @@ def respond(handler, code, data):
 
 def call_openai_list(titles):
     if not OPENAI_API_KEY: return None, "OPENAI_API_KEY not set"
-    prompt = "Paraphrasiere jede der folgenden Schlagzeilen in GENAU EINEN knappen Bullet-Satz (max 120 Zeichen), ohne Anführungszeichen, ohne Emojis, Reihenfolge beibehalten.\n\n" + "\n".join([f"- {t}" for t in titles])
+    prompt = "Paraphrasiere jede Schlagzeile in GENAU EINEN knappen Bullet-Satz (max 120 Zeichen), ohne Anführungszeichen & Emojis, Reihenfolge beibehalten.\n\n" + "\n".join([f"- {t}" for t in titles])
     body = {"model":"gpt-4o-mini","messages":[{"role":"user","content":prompt}],"temperature":0.2}
     req = urllib.request.Request("https://api.openai.com/v1/chat/completions",
         data=json.dumps(body).encode("utf-8"),
@@ -31,24 +31,6 @@ def call_openai_list(titles):
     except Exception as e:
         return None, f"parse_error: {e}"
 
-SYSTEM = "Du bist ein knapper, sachlicher Analyst. Schreibe 3 kurze Bullet-Sätze (max 240 Zeichen), direkt, ohne Emojis, auf Deutsch."
-USER_TMPL = "Fasse die aktuelle Kryptolage in 3 Bullet-Sätzen zusammen. Nutze diese Hinweise falls vorhanden: {hints}"
-
-def call_openai_summary(hints):
-    if not OPENAI_API_KEY:
-        return None, "OPENAI_API_KEY not set"
-    body = {"model":"gpt-4o-mini","messages":[{"role":"system","content":SYSTEM},{"role":"user","content":USER_TMPL.format(hints=hints or '')}],"temperature":0.2}
-    req = urllib.request.Request("https://api.openai.com/v1/chat/completions",
-        data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type":"application/json","Authorization":f"Bearer {OPENAI_API_KEY}"})
-    ctx = ssl.create_default_context()
-    with urllib.request.urlopen(req, context=ctx, timeout=15) as r:
-        j = json.load(r)
-    try:
-        return j["choices"][0]["message"]["content"], None
-    except Exception as e:
-        return None, f"parse_error: {e}"
-
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self): respond(self, 200, {})
     def do_POST(self):
@@ -58,14 +40,11 @@ class handler(BaseHTTPRequestHandler):
             j = json.loads(raw.decode("utf-8"))
         except Exception:
             j = {}
-        if j.get("mode") == "list" and isinstance(j.get("titles"), list) and j["titles"]:
-            lines, err = call_openai_list(j["titles"][:8])
+        titles = j.get("titles") or []
+        if titles:
+            lines, err = call_openai_list(titles[:8])
             if err: respond(self, 501, {"error": err}); return
             respond(self, 200, {"bullets": lines}); return
-        hints = j.get("hints") or ""
-        text, err = call_openai_summary(hints)
-        if err: respond(self, 501, {"error": err}); return
-        bullets = [s.strip(" •-") for s in text.splitlines() if s.strip()][:3]
-        respond(self, 200, {"bullets": bullets})
+        respond(self, 400, {"error":"missing titles"})
     def do_GET(self):
         respond(self, 200, {"status":"ok","provider":"openai","needs_env":"OPENAI_API_KEY"})
