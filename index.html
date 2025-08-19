@@ -206,36 +206,25 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
   </section>
 
 <!-- Geopolitik & Makro -->
+
   <section class="section" aria-labelledby="h-geo">
-    <h2 id="h-geo">Geopolitik & Makro (kompakt) <span class="badge" id="geoFeedStatus">–</span></h2>
-    <details class="geo" id="geoPanel" open>
-      <summary><strong>Heutige Einordnung</strong> – manuell pflegbar</summary>
-      <ul class="bullets" id="geoBullets" aria-live="polite"></ul>
-      <div class="toolbar">
-        <button class="btn" id="editGeoBtn" aria-expanded="false">✎ Bearbeiten</button>
-        <button class="btn" id="resetGeoBtn" title="Auf Vorlage zurücksetzen">↺ Reset</button>
-      </div>
-      <div id="geoEditor" style="display:none;margin-top:8px">
-        <label for="geoInput" class="small muted">Ein Bullet pro Zeile (max. 5):</label>
-        <textarea id="geoInput" rows="6" style="width:100%;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px"></textarea>
-        <div style="margin-top:6px">
-          <button class="btn" id="saveGeoBtn">✔ Speichern</button>
-          <span class="hint small">Wird lokal im Browser gespeichert.</span>
-        </div>
-      </div>
-      <div class="hint small">Quellen (nur Referenzen):
-  <a href="https://www.coingecko.com/en/api/documentation" target="_blank" rel="noopener">CoinGecko API</a> ·
-  <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> ·
-  <a href="https://exchangerate.host/#/" target="_blank" rel="noopener">exchangerate.host (FX)</a> ·
-  <a href="https://api.alternative.me/fng/" target="_blank" rel="noopener">Fear & Greed (alternative.me)</a> ·
-  <a href="https://binance-docs.github.io/apidocs/spot/en/#24hr-ticker-price-change-statistics" target="_blank" rel="noopener">Binance 24h Ticker</a> · <a href="https://binance-docs.github.io/apidocs/futures/en/#get-mark-price-and-funding-rate" target="_blank" rel="noopener">Binance Futures Funding</a> · <a href="https://mempool.space/api" target="_blank" rel="noopener">mempool.space API</a>
-</div>
-    </details>
+    <h2 id="h-geo">Geopolitik &amp; Makro (kompakt) <span class="badge" id="geoFeedStatus">–</span></h2>
+    <div class="toolbar" style="gap:8px;margin-bottom:6px">
+      <button class="btn" id="geoReload">↻ Neu laden</button>
+      <label class="pill">Sprache&nbsp;
+        <select id="geoLang" style="background:var(--card);color:var(--text);border:0">
+          <option value="EN" selected>EN</option>
+          <option value="DE">DE</option>
+        </select>
+      </label>
+      <label class="switch"><input type="checkbox" id="geoTranslateToggle"><span>Quellen via Übersetzer öffnen</span></label>
+    </div>
+    <ul class="bullets" id="geoTopicsList" aria-live="polite"></ul>
+    <div id="geoError" class="small error" style="display:none"></div>
   </section>
 
-  
 
- <!-- Szenarien -->
+  <!-- Szenarien -->
   <section class="section" aria-labelledby="h-scen">
     <h2 id="h-scen">Szenario-Modul (Bull/Base/Bear) <span class="badge" id="ts-scen">–</span></h2>
     <div class="hint small">Automatisch aus Trend/Momentum/Volumen abgeleitet. Farblegende: <span class="neg">Down = rot</span> · <span class="muted" style="color:var(--amber)">Middle = orange</span> · <span class="pos">Up = grün</span>. Keine Anlageberatung.</div>
@@ -284,6 +273,8 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
           <div class="seg">
             <input type="radio" id="ccy_eur" name="ccy" value="EUR"><label for="ccy_eur">EUR</label>
             <input type="radio" id="ccy_usd" name="ccy" value="USD"><label for="ccy_usd">USD</label>
+            <input type="radio" id="ccy_gbp" name="ccy" value="GBP"><label for="ccy_gbp">GBP</label>
+            <input type="radio" id="ccy_jpy" name="ccy" value="JPY"><label for="ccy_jpy">JPY</label>
           </div>
           <div class="small" style="margin-top:8px">Anzahl Coins</div>
           <div class="seg">
@@ -320,6 +311,21 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
             <input type="radio" id="ar_5" name="ar" value="5"><label for="ar_5">5 min</label>
             <input type="radio" id="ar_15" name="ar" value="15"><label for="ar_15">15 min</label>
             <input type="radio" id="ar_30" name="ar" value="30"><label for="ar_30">30 min</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Übersetzer</legend>
+          <label class="switch"><input type="checkbox" id="transGlobalToggle"><span>Webseiten‑Übersetzer aktiv</span></label>
+          <div class="small" style="margin-top:8px">Zielsprache</div>
+          <div class="seg">
+            <input type="radio" id="tr_en" name="translang" value="en"><label for="tr_en">EN</label>
+            <input type="radio" id="tr_de" name="translang" value="de"><label for="tr_de">DE</label>
+            <input type="radio" id="tr_es" name="translang" value="es"><label for="tr_es">ES</label>
+            <input type="radio" id="tr_fr" name="translang" value="fr"><label for="tr_fr">FR</label>
+            <input type="radio" id="tr_it" name="translang" value="it"><label for="tr_it">IT</label>
+            <input type="radio" id="tr_pl" name="translang" value="pl"><label for="tr_pl">PL</label>
+            <input type="radio" id="tr_ru" name="translang" value="ru"><label for="tr_ru">RU</label>
           </div>
         </fieldset>
       </div>
@@ -523,6 +529,9 @@ async function fetchWithTimeout(url,opts={}){
       return res;
     }catch(e){ clearTimeout(id); if(a===retries) throw e; await new Promise(r=>setTimeout(r,400*(a+1))); }
 
+
+  }
+}
 
 // --- Fallback helpers: FX + CoinLore + Binance ---
 async function fxUSDto(ccy){
@@ -954,6 +963,107 @@ q('#newsHighOnly') && q('#newsHighOnly').addEventListener('change', ()=>{
 
 // Start
 boot();
+
+// ==== Geo/Makro compact (AI) + Translator ====
+let GEO_LANG = (localStorage.getItem('geoLang')||'EN').toUpperCase();
+let GEO_TRANSLATE = (localStorage.getItem('geoTranslate')||'off')==='on';
+let TRANS_ON = (localStorage.getItem('transGlobalOn')||'off')==='on';
+let TRANS_LANG = (localStorage.getItem('transLang')||'en');
+
+function setGeoStatus(t){ const el=document.getElementById('geoFeedStatus'); if(el) el.textContent=t; }
+function wrapTranslate(u){
+  try{ new URL(u); }catch(_){ return u; }
+  if(!TRANS_ON) return u;
+  const tl = (TRANS_LANG||'en').toLowerCase();
+  // Use Google Translate web proxy
+  return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(tl)}&u=${encodeURIComponent(u)}`;
+}
+
+async function loadGeoCompact(force){
+  const err = document.getElementById('geoError');
+  const list = document.getElementById('geoTopicsList');
+  if(err){ err.style.display='none'; err.textContent=''; }
+  if(list) list.innerHTML='';
+  setGeoStatus('lädt…');
+  try{
+    const r = await fetch('/api/geo_feed?lang='+encodeURIComponent(GEO_LANG));
+    const j = await r.json();
+    const items = Array.isArray(j.items)? j.items.slice(0,6):[];
+    let bullets = [];
+    // Ask AI for compact bullets
+    const sres = await fetch('/api/summary', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ items, lang: GEO_LANG })
+    });
+    const sj = await sres.json().catch(()=>({}));
+    if(Array.isArray(sj.bullets) && sj.bullets.length) bullets = sj.bullets.slice(0, items.length);
+    // Render
+    const ul = list;
+    if(ul){
+      for(let i=0;i<items.length;i++){
+        const it = items[i];
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = wrapTranslate(it.url || '#'); a.target='_blank'; a.rel='noopener';
+        a.textContent = `${(it.domain||new URL(it.url).hostname.replace(/^www\\./,''))} – ${(it.title||'').slice(0,120)}`;
+        li.textContent = `• ${(bullets[i]|| (it.title||'').slice(0,100))} (`;
+        li.appendChild(a); li.appendChild(document.createTextNode(')'));
+        ul.appendChild(li);
+      }
+    }
+    setGeoStatus('aktualisiert');
+  }catch(e){
+    if(err){ err.style.display='block'; err.textContent='Geo-Feed Fehler: '+ (e.message||e); }
+    setGeoStatus('Fehler');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const langSel = document.getElementById('geoLang');
+  if(langSel){ langSel.value=GEO_LANG; langSel.addEventListener('change', ()=>{ GEO_LANG=langSel.value.toUpperCase(); localStorage.setItem('geoLang',GEO_LANG); loadGeoCompact(true); }); }
+  const tgl = document.getElementById('geoTranslateToggle');
+  if(tgl){ tgl.checked=GEO_TRANSLATE; tgl.addEventListener('change', ()=>{ GEO_TRANSLATE=!!tgl.checked; localStorage.setItem('geoTranslate', GEO_TRANSLATE?'on':'off'); }); }
+  document.getElementById('geoReload')?.addEventListener('click', ()=> loadGeoCompact(true) );
+  loadGeoCompact(true);
+});
+
+// Apply translator wrapping to DYOR & other external links at render time
+const _open = window.open;
+window.open = function(u, name, opts){ return _open.call(window, wrapTranslate(u), name, opts); };
+
+
+// Settings: add GBP/JPY + translator
+function populateSettingsExtras(){
+  // currencies
+  const ccys = ['EUR','USD','GBP','JPY'];
+  const current = (CURRENCY||'EUR').toUpperCase();
+  ccys.forEach(code=>{
+    const r = document.getElementById('ccy_'+code.toLowerCase());
+    if(r) r.checked = (code===current);
+  });
+  // translator
+  const tg = document.getElementById('transGlobalToggle'); if(tg) tg.checked = TRANS_ON;
+  const langs = ['en','de','es','fr','it','pl','ru'];
+  const curL = (TRANS_LANG||'en').toLowerCase();
+  langs.forEach(l=>{ const r = document.getElementById('tr_'+l); if(r) r.checked = (l===curL); });
+}
+const _populateSettingsOrig = (typeof populateSettings==='function') ? populateSettings : null;
+if(_populateSettingsOrig){
+  window.populateSettings = function(){ _populateSettingsOrig(); populateSettingsExtras(); }
+} else {
+  window.populateSettings = populateSettingsExtras;
+}
+const _onSettingsSubmitOrig = (typeof onSettingsSubmit==='function') ? onSettingsSubmit : null;
+if(_onSettingsSubmitOrig){
+  window.onSettingsSubmit = function(e){
+    _onSettingsSubmitOrig(e);
+    const tg = document.getElementById('transGlobalToggle'); TRANS_ON = !!(tg && tg.checked); localStorage.setItem('transGlobalOn', TRANS_ON?'on':'off');
+    const langs = ['en','de','es','fr','it','pl','ru']; for(const l of langs){ const r=document.getElementById('tr_'+l); if(r && r.checked){ TRANS_LANG=l; break; } }
+    localStorage.setItem('transLang', TRANS_LANG);
+  }
+}
+
 </script>
 
 <div id="cardOverlay" class="overlay" aria-hidden="true">
