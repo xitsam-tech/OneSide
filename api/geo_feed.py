@@ -1,112 +1,75 @@
 
+# api/geo_feed.py  — English-only finance/crypto headlines (RSS), JSON, short timeouts
 from http.server import BaseHTTPRequestHandler
-import json, urllib.parse, urllib.request, ssl, os, time, xml.etree.ElementTree as ET
+import json, urllib.request, urllib.error, socket, time, re
+from xml.etree import ElementTree as ET
 
-ALLOWED = os.getenv("ALLOWED_ORIGINS", "*")
-
-# --- Primary: GDELT (Geo + Macro) ---
-GDELT = "https://api.gdeltproject.org/api/v2/doc/doc"
-Q_GEO  = "(war OR conflict OR ceasefire OR sanctions OR nato OR russia OR china OR israel OR iran OR ukraine OR \"middle east\" OR election OR coup)"
-Q_MACRO= "(inflation OR cpi OR ppi OR \"interest rate\" OR yields OR recession OR fomc OR \"federal reserve\" OR ecb OR boe OR nfp OR payrolls OR gdp)"
-
-# --- RSS fallbacks (no key) ---
-RSS_SOURCES = [
-    ("Reuters World", "https://feeds.reuters.com/reuters/worldNews"),
-    ("Reuters Business", "https://feeds.reuters.com/reuters/businessNews"),
-    ("BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml"),
-    ("Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml"),
+RSS_EN = [
+    ("Reuters Markets", "https://feeds.reuters.com/reuters/marketsNews"),
+    ("Reuters Crypto", "https://www.reuters.com/markets/cryptocurrency/rss"),
+    ("AP Business", "https://apnews.com/hub/apf-business?utm_source=apnews.com&utm_medium=referral&utm_campaign=rss"),
+    ("BBC Business", "http://feeds.bbci.co.uk/news/business/rss.xml"),
+    ("Yahoo Finance", "https://feeds.finance.yahoo.com/rss/2.0/headline?s=BTC-USD,ETH-USD&region=US&lang=en-US"),
 ]
 
-UA = {"User-Agent":"Mozilla/5.0 (OneSide/1.0; +https://one-side.vercel.app)"}
+TIMEOUT = 5.5
+PAT = re.compile(r"(bitcoin|crypto|blockchain|mining|btc|eth|ethereum|stablecoin|altcoin|defi|etf|sec|spot\s*etf|futures|exchange|binance|coinbase|kraken|okx|wallet|liquidity|onchain|token|staking|airdrop|halving|hashrate|gas fee|mempool|treasury|bond|yield|interest|rate|fed|ecb|cpi|ppi|inflation|gdp|tariff|sanction|fx|forex|currency|usd|eur|gbp|jpy|yuan|yen|oil|gold|nasdaq|s&p|dow|volatility|market cap|marketcap)", re.I)
 
-def get_json(url, timeout=5):
-    ctx = ssl.create_default_context()
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, context=ctx, timeout=timeout) as r:
-        return json.load(r)
+def fetch(url):
+    req = urllib.request.Request(url, headers={"User-Agent":"Mozilla/5.0 (OneSideBot)"})
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        return r.read()
 
-def fetch_docs(q, timeout=5, maxrecords=24):
-    url = GDELT + "?" + urllib.parse.urlencode({
-        "query": q, "timespan":"4h", "maxrecords": str(maxrecords), "format":"json", "sort":"DateDesc"
-    })
+def parse_rss(content, source):
+    out = []
     try:
-        j = get_json(url, timeout=timeout)
-        arts = (j.get("articles") or [])
-        out = []
-        for a in arts:
-            url = a.get("url"); title = a.get("title") or ""
-            if not (url and title): continue
-            out.append({
-                "url": url,
-                "title": title,
-                "domain": (a.get("domain") or urllib.parse.urlparse(url).netloc).replace("www.",""),
-                "lang": a.get("language") or "",
-                "ts": a.get("seendate") or ""
-            })
-        return out, None
-    except Exception as e:
-        return [], f"gdelt_error:{type(e).__name__}:{e}"
+        root = ET.fromstring(content)
+    except Exception:
+        return out
+    for item in root.findall('.//item'):
+        t = (item.findtext('title') or '').strip()
+        l = (item.findtext('link') or '').strip()
+        if t and l and PAT.search(t):
+            out.append({"title": t, "url": l, "domain": source})
+    for entry in root.findall('.//{http://www.w3.org/2005/Atom}entry'):
+        t = (entry.findtext('{http://www.w3.org/2005/Atom}title') or '').strip()
+        l = ""
+        for ln in entry.findall('{http://www.w3.org/2005/Atom}link'):
+            href = ln.attrib.get('href')
+            if href: l = href
+        if t and l and PAT.search(t):
+            out.append({"title": t, "url": l, "domain": source})
+    return out
 
-def fetch_rss(url, timeout=5, limit=30):
-    try:
-        ctx = ssl.create_default_context()
-        req = urllib.request.Request(url, headers=UA)
-        with urllib.request.urlopen(req, context=ctx, timeout=timeout) as r:
-            data = r.read()
-        root = ET.fromstring(data)
-        out = []
-        for item in root.findall('.//item')[:limit]:
-            title = (item.findtext('title') or "").strip()
-            link  = (item.findtext('link') or "").strip()
-            if not (title and link): continue
-            d = urllib.parse.urlparse(link).netloc.replace("www.","")
-            out.append({"url": link, "title": title, "domain": d, "lang":"", "ts": ""})
-        return out, None
-    except Exception as e:
-        return [], f"rss_error:{type(e).__name__}:{e}"
-
-def dedup(items, limit=12):
-    seen = set(); out = []
+def dedupe(items, limit=24):
+    seen=set(); out=[]
     for it in items:
-        key = (it.get("domain",""), (it.get("title") or "")[:64])
+        key=(it.get("title","")[:80].lower(), it.get("domain",""))
         if key in seen: continue
         seen.add(key); out.append(it)
-        if len(out) >= limit: break
+        if len(out)>=limit: break
     return out
 
 class handler(BaseHTTPRequestHandler):
-    def _hdr(self, code=200):
-        self.send_response(code)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", ALLOWED)
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.send_header("Cache-Control", "public, max-age=180")
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin","*")
+        self.send_header("Access-Control-Allow-Methods","GET,OPTIONS")
+        self.send_header("Access-Control-Allow-Headers","Content-Type")
         self.end_headers()
-
-    def do_OPTIONS(self): self._hdr()
-
     def do_GET(self):
-        t0 = time.time()
-        items = []
-        errors = []
-
-        # Try GDELT fast (short timeouts)
-        geo, err = fetch_docs(Q_GEO, timeout=5, maxrecords=24)
-        if err: errors.append(err)
-        mac, err2 = fetch_docs(Q_MACRO, timeout=5, maxrecords=24)
-        if err2: errors.append(err2)
-        items = dedup(geo + mac, limit=12)
-
-        # Fallback to RSS if needed
-        if not items:
-            for name, url in RSS_SOURCES:
-                rss, er = fetch_rss(url, timeout=5, limit=30)
-                if er: errors.append(f"{name}:{er}")
-                items = dedup(items + rss, limit=12)
-                if len(items) >= 6: break  # good enough
-
-        self._hdr(200)
-        payload = {"items": items, "src": "GDELT+RSS", "t_ms": int((time.time()-t0)*1000)}
-        if errors: payload["errors"] = errors
-        self.wfile.write(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+        t0=time.time()
+        items=[]
+        for name, url in RSS_EN:
+            try:
+                raw = fetch(url)
+                items += parse_rss(raw, name)
+            except (urllib.error.URLError, socket.timeout, Exception):
+                continue
+        items = dedupe(items, 36)[:12]
+        resp = {"items": items, "src":"rss-finance-en", "t_ms": int((time.time()-t0)*1000), "count": len(items)}
+        self.send_response(200)
+        self.send_header("Content-Type","application/json; charset=utf-8")
+        self.send_header("Access-Control-Allow-Origin","*")
+        self.end_headers()
+        self.wfile.write(json.dumps(resp, ensure_ascii=False).encode("utf-8"))
