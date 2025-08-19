@@ -338,7 +338,7 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
       <div class="small">Quellen (APIs): 
         <a href="https://www.coingecko.com/api/documentations/v3" target="_blank" rel="noopener">CoinGecko API</a> ·
         <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> ·
-        <a href="https://exchangerate.host/#/" target="_blank" rel="noopener">exchangerate.host</a> ·
+        <a href="https://exchangerate.host/#/" target="_blank" rel="noopener">exchangerate.host (FX)</a> ·
         <a href="https://api.alternative.me/fng/" target="_blank" rel="noopener">alternative.me (FGI)</a> ·
         <a href="https://binance-docs.github.io/apidocs/spot/en/#24hr-ticker-price-change-statistics" target="_blank" rel="noopener">Binance 24h Ticker</a> ·
         <a href="https://www.okx.com/docs-v5/en/#public-data-rest-api-get-funding-rate" target="_blank" rel="noopener">OKX Funding API</a> ·
@@ -438,46 +438,23 @@ function setPulseTile(id, {val, sub, state}){
   if(ksub) ksub.textContent = sub||'';
 }
 async function fetchFunding(){
-  // Prefer same-origin Vercel function; fallback to public endpoints
-  const safeJson = async (res)=>{ if(!res.ok) throw new Error('HTTP '+res.status); return res.json(); };
   try{
-    const j = await fetch('/api/funding', {cache:'no-store'}).then(safeJson);
-    const fB = (parseFloat(j.btc)||0)*100;
-    const fE = (parseFloat(j.eth)||0)*100;
-    const next = j.nextFundingTime ? new Date(+j.nextFundingTime) : null;
-    const src = j.src || 'OKX/BYBIT';
-    return { btc:fB, eth:fE, next, src };
-  }catch(e){
-    // client-side fallback (direct)
-    try{
-      const [b,e2] = await Promise.all([
-        fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT',{timeoutMs:7000}).then(r=>r.json()),
-        fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=ETHUSDT',{timeoutMs:7000}).then(r=>r.json())
-      ]);
-      const fB = (parseFloat(b.lastFundingRate||b.fundingRate)||0)*100;
-      const fE = (parseFloat(e2.lastFundingRate||e2.fundingRate)||0)*100;
-      const next = new Date(+b.nextFundingTime||+e2.nextFundingTime||Date.now());
-      return { btc:fB, eth:fE, next, src:'Binance (client)' };
-    }catch(_){ return { btc:null, eth:null, next:null, src:null }; }
-  }
-}
+    const [b,e] = await Promise.all([
+      fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT',{timeoutMs:7000}).then(r=>r.json()),
+      fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=ETHUSDT',{timeoutMs:7000}).then(r=>r.json())
+    ]);
+    const fB = (parseFloat(b.lastFundingRate||b.fundingRate)||0)*100;
+    const fE = (parseFloat(e.lastFundingRate||e.fundingRate)||0)*100;
+    return {btc:fB, eth:fE, next:new Date(+b.nextFundingTime||+e.nextFundingTime||Date.now())};
+  }catch(_){ return {btc:null,eth:null,next:null}; }
 }
 async function fetchFees(){
-  const safeJson = async (res)=>{ if(!res.ok) throw new Error('HTTP '+res.status); return res.json(); };
   try{
-    const j = await fetch('/api/fees', {cache:'no-store'}).then(safeJson);
-    const hi = j.fast ?? null;
-    const lo = j.hour ?? null;
-    return { fast:hi, hour:lo };
-  }catch(e){
-    try{
-      const j = await fetchWithTimeout('https://mempool.space/api/v1/fees/recommended',{timeoutMs:7000}).then(r=>r.json());
-      const hi = j.fastestFee??j.high_priority??null;
-      const lo = j.hourFee??j.economyFee??null;
-      return {fast:hi, hour:lo};
-    }catch(_){ return {fast:null,hour:null}; }
-  }
-}
+    const j = await fetchWithTimeout('https://mempool.space/api/v1/fees/recommended',{timeoutMs:7000}).then(r=>r.json());
+    const hi = j.fastestFee??j.high_priority??null;
+    const lo = j.hourFee??j.economyFee??null;
+    return {fast:hi, hour:lo};
+  }catch(_){ return {fast:null,hour:null}; }
 }
 function updateCryptoPulse(srcTag){
   const coins = Array.isArray(lastCoins)? lastCoins : [];
@@ -528,12 +505,11 @@ async function refreshPulseExtras(){
   const f = await fetchFunding();
   const fTxt = (v)=> v==null? '–' : (v>=0?'+':'')+v.toFixed(3)+'%';
   const next = f.next ? new Date(f.next) : null;
-  const srcTxt = f.src ? (' · Quelle: '+f.src) : '';
-  const sub = (next ? ('nächste: '+ new Date(next).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})) : '') + srcTxt;
+  const sub = next ? ('nächste: '+ new Date(next).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})) : '';
   const stateB = f.btc!=null? (f.btc>0.05?'red':(f.btc<-0.01?'green':null)) : null;
   const stateE = f.eth!=null? (f.eth>0.05?'red':(f.eth<-0.01?'green':null)) : null;
   setPulseTile('pulse-funding', { val: `BTC ${fTxt(f.btc)} · ETH ${fTxt(f.eth)}`, sub, state: stateB||stateE });
-// 6) Mempool fees
+  // 6) Mempool fees
   const fees = await fetchFees();
   const sub2 = fees.hour!=null? `~1h: ${fees.hour} sat/vB` : '';
   const st2 = fees.fast!=null? (fees.fast>60?'red':(fees.fast<15?'green':null)) : null;
