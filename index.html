@@ -4,11 +4,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
-<meta name="theme-color" content="#0f172a">
 <title>Krypto Marktübersicht – Onefile</title>
 <style>
 :root{
@@ -414,6 +409,75 @@ function setAutoReload(enabled){
   if(AUTO_RELOAD){ nextReloadAt=Date.now()+AUTO_MIN*60*1000; updateCountdown(); autoTimer=setInterval(()=>{ boot(); }, AUTO_MIN*60*1000); }
   else { nextReloadAt=null; updateCountdown(); }
 }
+
+
+// === KI‑gestützte Geo/Makro‑Themen (4h, kompakt) ===
+async function fetchGeoFeed(){ try{
+  const r = await fetch('/api/geo_feed', {cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return await r.json();
+}catch(e){ console.warn('geo_feed error:', e); return {items:[], error:String(e)}; }}
+
+function renderGeoTopicsCompact(items, bullets){
+  const list = q('#geoTopicsList'); if(!list) return;
+  list.innerHTML = '';
+  const n = Math.min(4, items.length, (bullets&&bullets.length)||0);
+  for(let i=0;i<n;i++){
+    const it = items[i]; const b = (bullets[i]||'').replace(/^[-•\s]+/, '').trim();
+    const li = document.createElement('li');
+    const idx = i+1;
+    const a = document.createElement('a'); a.href = it.url; a.target='_blank'; a.rel='noopener';
+    const domain = it.domain || (new URL(it.url)).hostname.replace(/^www\./,'');
+    a.textContent = `${domain} – ${ (it.title||'').trim().slice(0,120) }`;
+    li.textContent = `. Thema #${idx} ${b} (`;
+    li.appendChild(a);
+    li.appendChild(document.createTextNode(')'));
+    list.appendChild(li);
+  }
+}
+
+async function updateGeoTopics(force=false){
+  const st = q('#geoFeedStatus'); if(st) st.textContent = 'lädt…';
+  // Cache < 4h
+  try{
+    const j = JSON.parse(localStorage.getItem('geoTopicsCacheCompact')||'{}');
+    if(!force && j.ts && (Date.now()-j.ts) < 4*60*60*1000 && Array.isArray(j.items) && Array.isArray(j.bullets)){
+      renderGeoTopicsCompact(j.items, j.bullets);
+      if(st) st.textContent = 'aus Cache';
+      return;
+    }
+  }catch(_){}
+  // Fresh
+  const feed = await fetchGeoFeed();
+  const items = (feed && Array.isArray(feed.items)) ? feed.items.slice(0,8) : [];
+  let bullets = [];
+  if(items.length){
+    try{
+      const titles = items.map(it=> it.title || it.domain || 'Quelle');
+      const r = await fetch('/api/summary', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ mode:'list', titles })
+      });
+      const j = await r.json();
+      if(Array.isArray(j.bullets)) bullets = j.bullets.slice(0, items.length);
+    }catch(e){ console.warn('summary error:', e); }
+  }
+  // Fallback: kurze Titel
+  if(!bullets.length && items.length){
+    bullets = items.map(it => (it.title||'').replace(/\s+/g,' ').trim()).map(t=> t.length>90? t.slice(0,87)+'…' : t);
+  }
+  if(items.length && bullets.length){
+    renderGeoTopicsCompact(items, bullets);
+    try{ localStorage.setItem('geoTopicsCacheCompact', JSON.stringify({ts:Date.now(), items, bullets})); }catch(_){}
+    if(st) st.textContent = 'aktualisiert';
+  }else{
+    if(st) st.textContent = 'n.v.';
+  }
+}
+// ensure first run
+updateGeoTopics(true);
+// schedule
+setInterval(()=>updateGeoTopics(true), 4*60*60*1000);
 
 // ========= Data =========
 
