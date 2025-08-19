@@ -150,15 +150,6 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 .pulse-grid .red .kval{color:#ef4444}
 .pulse-grid .green .kval{color:#22c55e}
 .pulse-grid .yellow .kval{color:#eab308}
-
-/* compact bullets for KI-Themen */
-ul.bullets{ list-style:none; padding-left:0; margin:6px 0 }
-ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
-#geoTopicsList li{ font-size:.9rem; }
-#geoToolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:.25rem 0 .5rem 0 }
-#geoToolbar .muted{ font-size:.8rem }
-#geoSrcList{ font-size:.8rem; color:var(--muted); margin-top:4px }
-
 </style>
 </head>
 <body>
@@ -177,7 +168,6 @@ ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
 </header>
 
 <main class="wrap">
-  <div id="marketsBanner"></div>
   <div class="hint small" id="globalStatus" aria-live="polite">Initialisiere…</div>
 
   <section class="section">
@@ -216,29 +206,36 @@ ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
   </section>
 
 <!-- Geopolitik & Makro -->
- <section class="section" aria-labelledby="h-geo">
-  <h2 id="h-geo">
-    Geopolitik &amp; Makro (kompakt)
-    <span class="badge" id="geoFeedStatus">–</span>
-  </h2>
+  <section class="section" aria-labelledby="h-geo">
+    <h2 id="h-geo">Geopolitik & Makro (kompakt) <span class="badge" id="geoFeedStatus">–</span></h2>
+    <details class="geo" id="geoPanel" open>
+      <summary><strong>Heutige Einordnung</strong> – manuell pflegbar</summary>
+      <ul class="bullets" id="geoBullets" aria-live="polite"></ul>
+      <div class="toolbar">
+        <button class="btn" id="editGeoBtn" aria-expanded="false">✎ Bearbeiten</button>
+        <button class="btn" id="resetGeoBtn" title="Auf Vorlage zurücksetzen">↺ Reset</button>
+      </div>
+      <div id="geoEditor" style="display:none;margin-top:8px">
+        <label for="geoInput" class="small muted">Ein Bullet pro Zeile (max. 5):</label>
+        <textarea id="geoInput" rows="6" style="width:100%;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px"></textarea>
+        <div style="margin-top:6px">
+          <button class="btn" id="saveGeoBtn">✔ Speichern</button>
+          <span class="hint small">Wird lokal im Browser gespeichert.</span>
+        </div>
+      </div>
+      <div class="hint small">Quellen (nur Referenzen):
+  <a href="https://www.coingecko.com/en/api/documentation" target="_blank" rel="noopener">CoinGecko API</a> ·
+  <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> ·
+  <a href="https://exchangerate.host/#/" target="_blank" rel="noopener">exchangerate.host (FX)</a> ·
+  <a href="https://api.alternative.me/fng/" target="_blank" rel="noopener">Fear & Greed (alternative.me)</a> ·
+  <a href="https://binance-docs.github.io/apidocs/spot/en/#24hr-ticker-price-change-statistics" target="_blank" rel="noopener">Binance 24h Ticker</a> · <a href="https://binance-docs.github.io/apidocs/futures/en/#get-mark-price-and-funding-rate" target="_blank" rel="noopener">Binance Futures Funding</a> · <a href="https://mempool.space/api" target="_blank" rel="noopener">mempool.space API</a>
+</div>
+    </details>
+  </section>
 
-  <div class="toolbar" style="gap:8px;margin-bottom:6px">
-    <button class="btn" id="geoReload">↻ Neu laden</button>
-    <label class="pill">Sprache&nbsp;
-      <select id="geoLang" style="background:var(--card);color:var(--text);border:0">
-        <option value="EN" selected>EN</option>
-        <option value="DE">DE</option>
-      </select>
-    </label>
-    <span class="hint small">Quellen werden live aus dem KI-Feed bezogen.</span>
-  </div>
+  
 
-  <ul class="bullets" id="geoTopicsList" aria-live="polite"></ul>
-  <div id="geoError" class="small error" style="display:none"></div>
-</section>
-
-
-  <!-- Szenarien -->
+ <!-- Szenarien -->
   <section class="section" aria-labelledby="h-scen">
     <h2 id="h-scen">Szenario-Modul (Bull/Base/Bear) <span class="badge" id="ts-scen">–</span></h2>
     <div class="hint small">Automatisch aus Trend/Momentum/Volumen abgeleitet. Farblegende: <span class="neg">Down = rot</span> · <span class="muted" style="color:var(--amber)">Middle = orange</span> · <span class="pos">Up = grün</span>. Keine Anlageberatung.</div>
@@ -287,8 +284,6 @@ ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
           <div class="seg">
             <input type="radio" id="ccy_eur" name="ccy" value="EUR"><label for="ccy_eur">EUR</label>
             <input type="radio" id="ccy_usd" name="ccy" value="USD"><label for="ccy_usd">USD</label>
-            <input type="radio" id="ccy_gbp" name="ccy" value="GBP"><label for="ccy_gbp">GBP</label>
-            <input type="radio" id="ccy_jpy" name="ccy" value="JPY"><label for="ccy_jpy">JPY</label>
           </div>
           <div class="small" style="margin-top:8px">Anzahl Coins</div>
           <div class="seg">
@@ -335,21 +330,33 @@ ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
     </form>
   </div>
 </div>
-<footer>
-<div class="legal-foot">
+
+<footer id="legal" class="legal-foot" role="contentinfo">
   <div class="wrap">
-    <div class="small">
-      Quellen (nur Referenzen):
-      <a href="https://www.coingecko.com/en/api" target="_blank" rel="noopener">CoinGecko API</a> ·
-      <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> ·
-      <a href="https://exchangerate.host/" target="_blank" rel="noopener">exchangerate.host (FX)</a> ·
-      <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener">Fear &amp; Greed</a> ·
-      <a href="https://api.binance.com/api/v3/ticker/24hr" target="_blank" rel="noopener">Binance 24h Ticker</a> ·
-      <a href="https://binance-docs.github.io/apidocs/futures/en/#funding-rate-history" target="_blank" rel="noopener">Binance Futures Funding</a> ·
-      <a href="https://mempool.space/docs/api" target="_blank" rel="noopener">mempool.space API</a>
+    <div class="row">
+      <div class="small">© 2025 OneSide Crypto. All Rights Reserved. <strong>Version:</strong> build-20250817-210352-UTC</div>
+      <div class="small">Quellen (APIs): 
+        <a href="https://www.coingecko.com/api/documentations/v3" target="_blank" rel="noopener">CoinGecko API</a> ·
+        <a href="https://developers.coinbase.com/api/v2" target="_blank" rel="noopener">Coinbase API v2</a> ·
+        <a href="https://exchangerate.host/" target="_blank" rel="noopener">exchangerate.host</a> ·
+        <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener">alternative.me (FGI)</a>
+      </div>
+      <div class="small">Weitere Referenzen: 
+        <a href="https://www.google.com/finance/" target="_blank" rel="noopener">Google Finance</a> ·
+        <a href="https://seekingalpha.com/" target="_blank" rel="noopener">Seeking Alpha</a> ·
+        <a href="https://finance.yahoo.com/" target="_blank" rel="noopener">Yahoo Finance</a> ·
+        <a href="https://www.msn.com/money" target="_blank" rel="noopener">MSN Money</a> ·
+        DYOR-Links: <a href="https://www.coingecko.com/" target="_blank" rel="noopener">CoinGecko</a> ·
+        <a href="https://www.reddit.com/" target="_blank" rel="noopener">Reddit</a> ·
+        <a href="https://x.com/" target="_blank" rel="noopener">X</a> ·
+        <a href="https://news.google.com/" target="_blank" rel="noopener">Google News</a>
+      </div>
+      <div class="small">Impressum (Platzhalter – bitte anpassen): Betreiber: OneSide Crypto · Kontakt: info@onesidecrypto.example · Sitz: —.
+        Inhaltlich verantwortlich: —. Hinweis: Keine Anlageberatung. Datenquelle ohne Gewähr; Kurse/FGI können von den Anbietern abweichen.
+        Dieses Onefile führt Requests direkt im Browser aus; es werden keine personenbezogenen Daten an einen Server des Betreibers übermittelt.
+      </div>
     </div>
   </div>
-</div>
 </footer>
 
 <script>
@@ -402,57 +409,6 @@ function setAutoReload(enabled){
   if(AUTO_RELOAD){ nextReloadAt=Date.now()+AUTO_MIN*60*1000; updateCountdown(); autoTimer=setInterval(()=>{ boot(); }, AUTO_MIN*60*1000); }
   else { nextReloadAt=null; updateCountdown(); }
 }
-
-
-
-// ---- Geo/Macro language preference + sources ----
-let GEO_LANG = (localStorage.getItem('geoLang') || 'en'); // English preferred by default
-function applyGeoLangUI(){
-  const sel = q('#geoLangSel'); if(sel){ sel.value = GEO_LANG; sel.addEventListener('change',()=>{
-    GEO_LANG = sel.value; localStorage.setItem('geoLang', GEO_LANG);
-    updateGeoTopics(true);
-  });}
-}
-function normalizeBulletsForLang(bullets, lang){
-  // Keep as-is; server should honor language. As fallback, we just return given bullets.
-  return bullets || [];
-}
-function renderGeoSources(items){
-  try{
-    const box = q('#geoSrcList'); if(!box) return;
-    const domains = Array.from(new Set(items.map(it => (it.domain || new URL(it.url).hostname).replace(/^www\./,''))));
-    const max = Math.min(6, domains.length);
-    const parts = domains.slice(0,max).map(d => `<a href="https://${d}" target="_blank" rel="noopener">${d}</a>`);
-    box.innerHTML = parts.length ? `Quellen: ${parts.join(' · ')}` : '';
-  }catch(_){}
-}
-
-// === KI‑gestützte Geo/Makro‑Themen (4h, kompakt) ===
-async function fetchGeoFeed(){ try{
-  const r = await fetch('/api/geo_feed', {cache:'no-store'});
-  if(!r.ok) throw new Error('HTTP '+r.status);
-  return await r.json();
-}catch(e){ console.warn('geo_feed error:', e); return {items:[], error:String(e)}; }}
-
-function renderGeoTopicsCompact(items, bullets){
-  const list = q('#geoTopicsList'); if(!list) return;
-  list.innerHTML = '';
-  const n = Math.min(4, items.length, (bullets&&bullets.length)||0);
-  for(let i=0;i<n;i++){
-    const it = items[i]; const b = (bullets[i]||'').replace(/^[-•\s]+/, '').trim();
-    const li = document.createElement('li');
-    const idx = i+1;
-    const a = document.createElement('a'); a.href = it.url; a.target='_blank'; a.rel='noopener';
-    const domain = it.domain || (new URL(it.url)).hostname.replace(/^www\./,'');
-    a.textContent = `${domain} – ${ (it.title||'').trim().slice(0,120) }`;
-    li.textContent = `• ${b} (`;
-    li.appendChild(a);
-    li.appendChild(document.createTextNode(')'));
-    list.appendChild(li);
-  }
-}
-
-
 
 // ========= Data =========
 
@@ -966,8 +922,6 @@ async function boot(){
 // ========= Events =========
 window.addEventListener('resize', layoutPad);
 document.addEventListener('DOMContentLoaded', layoutPad);
-applyGeoLangUI();
-const geoBtn=q('#geoReloadBtn'); if(geoBtn){ geoBtn.addEventListener('click', ()=>updateGeoTopics(true)); }
 
 q('#refreshBtn').addEventListener('click', ()=>{ if(AUTO_RELOAD){ nextReloadAt=Date.now()+AUTO_MIN*60*1000; } boot(); });
 q('#openSettingsBtn').addEventListener('click', openSettings);
@@ -1008,192 +962,6 @@ boot();
     <div id="overlayContent"></div>
   </div>
 </div>
-<script>
-// --- robuster Loader für KI-Themen (zeigt Fehler textlich an) ---
-async function geoFetchJSON(url, opt){ 
-  const r = await fetch(url, opt);
-  // auch Fehlerseiten als Text lesen und sinnvoll behandeln
-  const txt = await r.text();
-  try { return { ok:r.ok, status:r.status, json: JSON.parse(txt) }; }
-  catch { return { ok:r.ok, status:r.status, text: txt }; }
-}
-
-function geoRender(items, bullets){
-  const list = document.querySelector('#geoTopicsList');
-  const status = document.querySelector('#geoFeedStatus');
-  const errBox = document.querySelector('#geoError');
-  list.innerHTML = '';
-  errBox.style.display = 'none'; errBox.textContent = '';
-  const n = Math.min(4, items.length, bullets.length);
-  for(let i=0;i<n;i++){
-    const it = items[i]; const b = (bullets[i]||'').replace(/^[-•\s]+/, '').trim();
-    const li = document.createElement('li');
-    const a = document.createElement('a'); a.href = it.url; a.target = '_blank'; a.rel = 'noopener';
-    const domain = it.domain || new URL(it.url).hostname.replace(/^www\./,'');
-    a.textContent = `${domain} – ${(it.title||'').slice(0,120)}`;
-    li.textContent = `. Thema #${i+1} ${b} (`; li.appendChild(a); li.appendChild(document.createTextNode(')'));
-    list.appendChild(li);
-  }
-  status.textContent = n ? 'aktualisiert' : 'n.v.';
-}
-
-async function loadGeoCompact(force=false){
-  const status = document.querySelector('#geoFeedStatus');
-  const errBox = document.querySelector('#geoError');
-  status.textContent = 'lädt…'; errBox.style.display = 'none'; errBox.textContent = '';
-
-  // 1) Quellen holen
-  const feed = await geoFetchJSON('/api/geo_feed');
-  if(!feed.ok){
-    errBox.style.display = 'block';
-    errBox.textContent = `Geo-Feed Fehler ${feed.status}: ` + (feed.json?.error ? JSON.stringify(feed.json.error) : (feed.text||'keine Details'));
-    status.textContent = 'Fehler';
-    return;
-  }
-  const items = Array.isArray(feed.json.items) ? feed.json.items.slice(0,8) : [];
-
-  // 2) Bullets holen (POST)
-  let bullets = [];
-  if(items.length){
-    const titles = items.map(it=> it.title || it.domain || 'Quelle');
-    const res = await geoFetchJSON('/api/summary', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ titles })
-    });
-    if(!res.ok){
-      // lesbar anzeigen (Gateway/Key/Model-Fehler etc.)
-      errBox.style.display = 'block';
-      errBox.textContent = `Summary Fehler ${res.status}: ` + (res.json?.error ? JSON.stringify(res.json.error) : (res.text||'keine Details'));
-      // Fallback: sehr kurze Titel verwenden, damit trotzdem etwas erscheint
-      bullets = titles.map(t => t.length>90 ? t.slice(0,87)+'…' : t);
-    }else{
-      bullets = Array.isArray(res.json.bullets) ? res.json.bullets.slice(0, items.length) : [];
-    }
-  }
-
-  // 3) Rendern / Fallback
-  if(!bullets.length && items.length){
-    bullets = items.map(it => (it.title||'').trim()).map(t=> t.length>90? t.slice(0,87)+'…':t);
-  }
-  geoRender(items, bullets);
-}
-
-// Button & Timer
-document.addEventListener('DOMContentLoaded', ()=>{
-  const btn = document.querySelector('#geoReloadBtn');
-  if(btn) btn.addEventListener('click', ()=> loadGeoCompact(true));
-  loadGeoCompact(true);
-  setInterval(()=>loadGeoCompact(true), 4*60*60*1000);
-});
-</script>
-
-
-<script>
-// Banner
-async function loadMarketsBanner(){
-  try{
-    const tryOne = async (u)=>fetch(u,{cache:'no-store'}).then(r=>r.ok?r.text():null).catch(()=>null);
-    const html = await tryOne('/banner') || await tryOne('/banner.html');
-    if(html){ const box=document.getElementById('marketsBanner'); if(box) box.innerHTML=html; }
-  }catch(_){}
-}
-document.addEventListener('DOMContentLoaded', loadMarketsBanner);
-</script>
-<script>
-/* --- Geo/Makro (kompakt) – robuste Einzellogik --- */
-(function(){
-  const $ = (s,r=document)=>r.querySelector(s);
-  const txt = (el, t)=>{ if(el) el.textContent = t; };
-
-  async function fetchJson(url, init){
-    const res = await fetch(url, init);
-    const raw = await res.text();
-    try { return { ok: res.ok, status: res.status, json: JSON.parse(raw) }; }
-    catch { return { ok: res.ok, status: res.status, text: raw }; }
-  }
-
-  function render(items, bullets){
-    const list = $('#geoTopicsList'); if(!list) return;
-    list.innerHTML = '';
-    const n = Math.min(4, items.length);
-    for(let i=0;i<n;i++){
-      const it = items[i];
-      const b = (bullets?.[i] || '').replace(/^[-•\s]+/,'').trim();
-      const li = document.createElement('li');
-
-      const a = document.createElement('a');
-      a.href = it.url; a.target = '_blank'; a.rel = 'noopener';
-      const domain = it.domain || new URL(it.url).hostname.replace(/^www\./,'');
-      a.textContent = `${domain} – ${(it.title||'').slice(0,120)}`;
-
-      li.appendChild(document.createTextNode(`• ${b || (it.title||'').slice(0,80)} (`));
-      li.appendChild(a);
-      li.appendChild(document.createTextNode(')'));
-      list.appendChild(li);
-    }
-  }
-
-  async function loadGeo(force=false){
-    const st  = $('#geoFeedStatus');
-    const err = $('#geoError');
-    const sel = $('#geoLang');
-
-    txt(st, 'lädt…');
-    if(err){ err.style.display = 'none'; err.textContent = ''; }
-
-    const lang = (sel?.value || 'EN').toUpperCase();
-
-    // 1) Quellen holen
-    const feed = await fetchJson('/api/geo_feed?lang=' + encodeURIComponent(lang));
-    if(!feed.ok || !Array.isArray(feed.json?.items)){
-      if(err){
-        err.style.display = 'block';
-        err.textContent = `Geo-Feed Fehler ${feed.status||''}: ` +
-                          (feed.json?.error?.message || feed.text || 'keine Details');
-      }
-      txt(st,'Fehler');
-      return;
-    }
-    const items = feed.json.items.slice(0,8);
-
-    // 2) Kurz-Bullets generieren (KI), super knapp
-    const prompt = `Return exactly 4 ultra-short bullets in ${lang==='DE'?'German':'English'} about geopolitics/macro **relevant to crypto**. `
-                 + `Max 18 words per bullet, no intro/outro, no numbering.`;
-
-    const sum = await fetchJson('/api/summary', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({
-        provider: 'openai',
-        system: 'Be terse. Focus only on crypto-relevant geopolitics/macro facts.',
-        prompt,
-        items
-      })
-    });
-
-    if(!sum.ok || !Array.isArray(sum.json?.bullets)){
-      if(err){
-        err.style.display = 'block';
-        err.textContent = `Summary Fehler ${sum.status||''}: ` +
-                          (sum.json?.error?.message || sum.text || ''); 
-      }
-      // Fallback: nur die Headlines
-      render(items, []);
-      txt(st, 'teilweise');
-      return;
-    }
-
-    render(items, sum.json.bullets);
-    txt(st, 'aktualisiert');
-  }
-
-  document.addEventListener('DOMContentLoaded', ()=>{
-    $('#geoReload')?.addEventListener('click', ()=> loadGeo(true));
-    $('#geoLang')?.addEventListener('change', ()=> loadGeo(true));
-    loadGeo(true);
-  });
-
-
 
 </body>
 </html>
