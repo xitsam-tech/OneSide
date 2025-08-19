@@ -150,6 +150,12 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 .pulse-grid .red .kval{color:#ef4444}
 .pulse-grid .green .kval{color:#22c55e}
 .pulse-grid .yellow .kval{color:#eab308}
+
+/* Trendfarben für Karten */
+.trend-on .card.trend-up   { background: rgba(34,197,94,.08);  border-color: rgba(34,197,94,.25); }
+.trend-on .card.trend-mid  { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.25); }
+.trend-on .card.trend-down { background: rgba(239,68,68,.08);  border-color: rgba(239,68,68,.25); }
+
 </style>
 </head>
 <body>
@@ -387,7 +393,15 @@ let lastCoins=[]; let trendingIds=new Set();
 let autoTimer=null; let nextReloadAt=null; let countdownTimer=null;
 
 function applyTheme(){ document.documentElement.setAttribute('data-theme',THEME); }
-function applyTrendBg(){ document.body.classList.toggle('trend-on',!!TREND_BG); }
+function applyTrendBg(){
+  document.body.classList.toggle('trend-on',!!TREND_BG);
+  if(!TREND_BG) return;
+  document.querySelectorAll('.card[data-change]').forEach(c=>{
+    c.classList.remove('trend-up','trend-mid','trend-down');
+    const v = parseFloat(String(c.getAttribute('data-change')).replace(',','.')) || 0;
+    c.classList.add(v>1.5?'trend-up':(v<-1.5?'trend-down':'trend-mid'));
+  });
+}
 function applyShowExch(){ const sec=document.getElementById('exchangesSection'); if(sec){ sec.style.display = SHOW_EXCH ? '' : 'none'; } }
 function updateAutoLabel(){ const el=q('#autoLbl'); if(el) el.textContent='Auto '+AUTO_MIN+' min'; }
 function updateCountdown(){
@@ -531,6 +545,8 @@ async function fetchWithTimeout(url,opts={}){
 
 
   }
+}
+
 }
 
 // --- Fallback helpers: FX + CoinLore + Binance ---
@@ -986,7 +1002,8 @@ async function loadGeoCompact(force){
   try{
     const r = await fetch('/api/geo_feed?lang='+encodeURIComponent(GEO_LANG));
     const j = await r.json();
-    const items = Array.isArray(j.items)? j.items.slice(0,6):[];
+    let items = Array.isArray(j.items)? j.items.slice(0,6):[];
+    items = financeOnly(items).slice(0,6);
     let bullets = [];
     // Ask AI for compact bullets
     const sres = await fetch('/api/summary', {
@@ -1017,8 +1034,7 @@ async function loadGeoCompact(force){
   }
 }
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  const langSel = document.getElementById('geoLang');
+document.addEventListener('DOMContentLoaded', ()=>{const langSel = document.getElementById('geoLang');
   if(langSel){ langSel.value=GEO_LANG; langSel.addEventListener('change', ()=>{ GEO_LANG=langSel.value.toUpperCase(); localStorage.setItem('geoLang',GEO_LANG); loadGeoCompact(true); }); }
   const tgl = document.getElementById('geoTranslateToggle');
   if(tgl){ tgl.checked=GEO_TRANSLATE; tgl.addEventListener('change', ()=>{ GEO_TRANSLATE=!!tgl.checked; localStorage.setItem('geoTranslate', GEO_TRANSLATE?'on':'off'); }); }
