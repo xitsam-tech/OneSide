@@ -213,8 +213,37 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
   <div class="title small">KI-Themen (alle 4 h, kompakt)</div>
   <div class="small muted" id="geoFeedStatus">bereit</div>
 </div>
-
-
+<summary><strong>Heutige Einordnung</strong> – manuell pflegbar</summary>
+      <ul class="bullets" id="geoBullets" aria-live="polite"></ul>
+      <div class="toolbar">
+        <button class="btn" id="editGeoBtn" aria-expanded="false">✎ Bearbeiten</button>
+        <button class="btn" id="resetGeoBtn" title="Auf Vorlage zurücksetzen">↺ Reset</button>
+      </div>
+      <div id="geoEditor" style="display:none;margin-top:8px">
+        <label for="geoInput" class="small muted">Ein Bullet pro Zeile (max. 5):</label>
+        <textarea id="geoInput" rows="6" style="width:100%;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px"></textarea>
+        <div style="margin-top:6px">
+          <button class="btn" id="saveGeoBtn">✔ Speichern</button>
+          <span class="hint small">Wird lokal im Browser gespeichert.</span>
+        </div>
+      </div>
+ <section class="section" aria-labelledby="h-geo">
+    <h2 id="h-geo">Geopolitik & Makro (kompakt) <span class="badge" id="ts-geo">–</span></h2>
+    <details class="geo" id="geoPanel" open>
+      <summary><strong>Heutige Einordnung</strong> – manuell pflegbar</summary>
+      <ul class="bullets" id="geoBullets" aria-live="polite"></ul>
+      <div class="toolbar">
+        <button class="btn" id="editGeoBtn" aria-expanded="false">✎ Bearbeiten</button>
+        <button class="btn" id="resetGeoBtn" title="Auf Vorlage zurücksetzen">↺ Reset</button>
+      </div>
+      <div id="geoEditor" style="display:none;margin-top:8px">
+        <label for="geoInput" class="small muted">Ein Bullet pro Zeile (max. 5):</label>
+        <textarea id="geoInput" rows="6" style="width:100%;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px"></textarea>
+        <div style="margin-top:6px">
+          <button class="btn" id="saveGeoBtn">✔ Speichern</button>
+          <span class="hint small">Wird lokal im Browser gespeichert.</span>
+        </div>
+      </div>
 
 
 
