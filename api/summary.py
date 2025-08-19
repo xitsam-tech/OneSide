@@ -2,7 +2,6 @@
 from http.server import BaseHTTPRequestHandler
 import json, os, urllib.request, urllib.error, ssl
 
-# --- Config (supports Vercel AI Gateway & OpenAI) ---
 API_KEY = (os.getenv("OPENAI_API_KEY") or os.getenv("AI_GATEWAY_API_KEY") or os.getenv("AI_API_KEY"))
 BASE_URL = os.getenv("AI_API_URL", "https://api.openai.com/v1/chat/completions")
 MODEL    = os.getenv("AI_MODEL", "openai/gpt-4o-mini")
@@ -10,7 +9,7 @@ INCLUDE_MODEL = os.getenv("AI_INCLUDE_MODEL", "1").lower() not in ("0","false","
 AUTH_HDR = os.getenv("AI_AUTH_HEADER", "Authorization")
 AUTH_VAL = os.getenv("AI_AUTH_VALUE") or (("Bearer " + API_KEY) if AUTH_HDR.lower()=="authorization" else (API_KEY or ""))
 ALLOWED  = os.getenv("ALLOWED_ORIGINS", "*")
-TIMEOUT  = int(os.getenv("AI_TIMEOUT", "8"))  # keep under Vercel's 10s
+TIMEOUT  = int(os.getenv("AI_TIMEOUT", "8"))
 
 def respond(h, code, data):
     h.send_response(code)
@@ -23,14 +22,11 @@ def respond(h, code, data):
 
 def chat(messages):
     if not API_KEY:
-        return None, {"error":"missing_api_key","hint":"Set AI_GATEWAY_API_KEY (or OPENAI_API_KEY)."} 
+        return None, {"error":"missing_api_key","hint":"Set AI_GATEWAY_API_KEY (or OPENAI_API_KEY)."}
     body = {"messages": messages, "temperature": 0.2}
     if INCLUDE_MODEL: body["model"] = MODEL
-    req = urllib.request.Request(
-        BASE_URL,
-        data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type":"application/json", AUTH_HDR: AUTH_VAL}
-    )
+    req = urllib.request.Request(BASE_URL, data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type":"application/json", AUTH_HDR: AUTH_VAL})
     try:
         with urllib.request.urlopen(req, context=ssl.create_default_context(), timeout=TIMEOUT) as r:
             j = json.load(r)
@@ -45,25 +41,28 @@ def chat(messages):
     except Exception as e:
         return None, {"exception": str(e)}
 
-def fallback_bullets(titles):
-    out = []
-    for t in titles:
-        s = (t or "").strip().replace("\n"," ")
-        if len(s) > 90: s = s[:87] + "…"
-        out.append(s)
-    return out
-
 def bullets_from_titles(titles, lang="en"):
     lang = (lang or "en").lower()
     if lang.startswith("de"):
         sys = "Antworte immer auf Deutsch. Paraphrasiere/übersetze JEDE Schlagzeile in GENAU EINEN knappen Bullet-Satz (max 120 Zeichen), sachlich, ohne Emojis/Anführungszeichen. Bewahre die Reihenfolge."
     else:
         sys = "Answer in concise English. For each headline, translate if needed and write EXACTLY ONE compact bullet sentence (max 120 chars), no emojis/quotes. Keep order."
-    user = "\n".join([f"- {t}" for t in titles])
+    user = "\\n".join([f"- {t}" for t in titles])
+    # try once, quick retry once
     text, err = chat([{"role":"system","content":sys},{"role":"user","content":user}])
-    if err: return None, err
+    if err:
+        text, err = chat([{"role":"system","content":sys},{"role":"user","content":user}])
+        if err: return None, err
     lines = [l.strip(" -•") for l in text.splitlines() if l.strip()]
     return lines, None
+
+def fallback_bullets(titles):
+    out=[]; 
+    for t in titles:
+        s=(t or '').strip().replace('\\n',' ')
+        if len(s)>100: s=s[:97]+'…'
+        out.append(s)
+    return out
 
 class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self): respond(self, 200, {})
@@ -71,17 +70,17 @@ class handler(BaseHTTPRequestHandler):
         respond(self, 200, {"status":"ok","base_url":BASE_URL,"model":(MODEL if INCLUDE_MODEL else None),"auth_header":AUTH_HDR,"timeout_s":TIMEOUT})
     def do_POST(self):
         try:
-            n = int(self.headers.get("Content-Length","0")); raw = self.rfile.read(n) if n>0 else b"{}"
+            n = int(self.headers.get("Content-Length","0"))
+            raw = self.rfile.read(n) if n>0 else b"{}"
             data = json.loads(raw.decode("utf-8"))
         except Exception:
             data = {}
-        lang = data.get("lang") or "en"
         titles = (data.get("titles") or [])[:4]
+        lang   = data.get("lang") or "en"
         if not titles:
             respond(self, 400, {"error":"missing titles"}); return
         lines, err = bullets_from_titles(titles, lang=lang)
         if err:
-            # graceful local fallback with 200 so UI stays clean
             respond(self, 200, {"bullets": fallback_bullets(titles), "used_fallback": True, "error": err})
         else:
             respond(self, 200, {"bullets": lines})
