@@ -156,6 +156,12 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 .trend-on .card.trend-mid  { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.25); }
 .trend-on .card.trend-down { background: rgba(239,68,68,.08);  border-color: rgba(239,68,68,.25); }
 
+
+/* Trendfarben für Coin-Karten */
+.trend-on .coin.trend-up   { background: rgba(34,197,94,.08) !important;  border-color: rgba(34,197,94,.25) !important; }
+.trend-on .coin.trend-mid  { background: rgba(245,158,11,.08) !important; border-color: rgba(245,158,11,.25) !important; }
+.trend-on .coin.trend-down { background: rgba(239,68,68,.08) !important;  border-color: rgba(239,68,68,.25) !important; }
+
 </style>
 </head>
 <body>
@@ -396,7 +402,7 @@ function applyTheme(){ document.documentElement.setAttribute('data-theme',THEME)
 function applyTrendBg(){
   document.body.classList.toggle('trend-on',!!TREND_BG);
   if(!TREND_BG) return;
-  document.querySelectorAll('.card[data-change]').forEach(c=>{
+  document.querySelectorAll('.coin[data-change]').forEach(c=>{
     c.classList.remove('trend-up','trend-mid','trend-down');
     const v = parseFloat(String(c.getAttribute('data-change')).replace(',','.')) || 0;
     c.classList.add(v>1.5?'trend-up':(v<-1.5?'trend-down':'trend-mid'));
@@ -813,6 +819,7 @@ function renderTopCoins(list){
     else { const ctx=canvas.getContext('2d'); ctx.fillText('–',6,16); }
   }
   buildScenario(list);
+  try{ applyTrendBg(); }catch(_){}
 }
 
 
@@ -976,6 +983,15 @@ q('#newsHighOnly') && q('#newsHighOnly').addEventListener('change', ()=>{
 
 // Start
 boot();
+
+
+// --- Finance/Crypto filter (client-side) ---
+const FINANCE_RE = /(bitcoin|crypto|blockchain|mining|btc|eth|ethereum|stablecoin|altcoin|defi|etf|sec|spot\s*etf|futures|exchange|binance|coinbase|kraken|okx|wallet|liquidity|onchain|token|staking|airdrop|halving|hashrate|gas fee|mempool|treasury|bond|yield|interest|rate|fed|ecb|cpi|ppi|inflation|gdp|tariff|sanction|fx|forex|currency|usd|eur|gbp|jpy|yuan|yen|oil|gold|nasdaq|s&p|dow|volatility|market cap|marketcap)/i;
+function financeOnly(arr){
+  try{
+    return (Array.isArray(arr)?arr:[]).filter(it => FINANCE_RE.test(String(it.title||'')));
+  }catch(_){ return Array.isArray(arr)?arr:[]; }
+}
 
 // ==== Geo/Makro compact (AI) + Translator ====
 let GEO_LANG = (localStorage.getItem('geoLang')||'EN').toUpperCase();
