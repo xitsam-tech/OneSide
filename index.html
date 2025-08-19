@@ -151,17 +151,19 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 .pulse-grid .green .kval{color:#22c55e}
 .pulse-grid .yellow .kval{color:#eab308}
 
-/* compact bullets for KI-Themen */
-ul.bullets{ list-style:none; padding-left:0; margin:6px 0 }
-ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
-#geoTopicsList li{ font-size:.9rem; }
-#geoToolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:.25rem 0 .5rem 0 }
-#geoToolbar .muted{ font-size:.8rem }
-#geoSrcList{ font-size:.8rem; color:var(--muted); margin-top:4px }
+/* --- KI-Themen compact polish v2 --- */
+ul.bullets li { font-size: .88rem; line-height: 1.3; }
+.small .muted, .muted.small { font-size: .8rem; }
+.hidden { display:none !important; }
+#geoToolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:.25rem 0 .5rem 0 }
+#geoSrcList { font-size:.8rem; color:var(--muted); margin-top:4px }
+#geoError { max-height: 140px; overflow:auto }
 
 </style>
 </head>
 <body>
+<div id="marketsBanner"></div>
+>
 <header class="topbar">
   <div class="wrap head-row">
     <div>
@@ -218,14 +220,6 @@ ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
   <section class="section" aria-labelledby="h-geo">
     <h2 id="h-geo">Geopolitik & Makro (kompakt) <span class="badge" id="ts-geo">–</span></h2>
     <details class="geo" id="geoPanel" open>
-<div class="row between center" style="margin-top:.5rem">
-  <div class="title small">KI-Themen (alle 4 h, kompakt)</div>
-  <div class="small muted" id="geoFeedStatus">bereit</div>
-</div>
-<ul id="geoTopicsList" class="bullets small"></ul>
-<button id="geoReloadBtn" class="btn small" type="button">↻ Neu laden</button>
-<pre id="geoError" style="display:none;font-size:.85em;color:#f87171;background:#111827;padding:.5rem;border-radius:.375rem;white-space:pre-wrap"></pre>
-
       <summary><strong>Heutige Einordnung</strong> – manuell pflegbar</summary>
       <ul class="bullets" id="geoBullets" aria-live="polite"></ul>
       <div class="toolbar">
@@ -301,8 +295,6 @@ ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
           <div class="seg">
             <input type="radio" id="ccy_eur" name="ccy" value="EUR"><label for="ccy_eur">EUR</label>
             <input type="radio" id="ccy_usd" name="ccy" value="USD"><label for="ccy_usd">USD</label>
-            <input type="radio" id="ccy_gbp" name="ccy" value="GBP"><label for="ccy_gbp">GBP</label>
-            <input type="radio" id="ccy_jpy" name="ccy" value="JPY"><label for="ccy_jpy">JPY</label>
           </div>
           <div class="small" style="margin-top:8px">Anzahl Coins</div>
           <div class="seg">
@@ -356,9 +348,13 @@ ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
       <div class="small">© 2025 OneSide Crypto. All Rights Reserved. <strong>Version:</strong> build-20250817-210352-UTC</div>
       <div class="small">Quellen (APIs): 
         <a href="https://www.coingecko.com/api/documentations/v3" target="_blank" rel="noopener">CoinGecko API</a> ·
-        <a href="https://developers.coinbase.com/api/v2" target="_blank" rel="noopener">Coinbase API v2</a> ·
-        <a href="https://exchangerate.host/" target="_blank" rel="noopener">exchangerate.host</a> ·
-        <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener">alternative.me (FGI)</a>
+        <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> ·
+        <a href="https://exchangerate.host/#/" target="_blank" rel="noopener">exchangerate.host (FX)</a> ·
+        <a href="https://api.alternative.me/fng/" target="_blank" rel="noopener">alternative.me (FGI)</a> ·
+        <a href="https://binance-docs.github.io/apidocs/spot/en/#24hr-ticker-price-change-statistics" target="_blank" rel="noopener">Binance 24h Ticker</a> ·
+        <a href="https://www.okx.com/docs-v5/en/#public-data-rest-api-get-funding-rate" target="_blank" rel="noopener">OKX Funding API</a> ·
+        <a href="https://bybit-exchange.github.io/docs/v5/market/funding" target="_blank" rel="noopener">Bybit Funding API</a> ·
+        <a href="https://mempool.space/docs/api/rest" target="_blank" rel="noopener">mempool.space API</a>
       </div>
       <div class="small">Weitere Referenzen: 
         <a href="https://www.google.com/finance/" target="_blank" rel="noopener">Google Finance</a> ·
@@ -428,100 +424,6 @@ function setAutoReload(enabled){
   if(AUTO_RELOAD){ nextReloadAt=Date.now()+AUTO_MIN*60*1000; updateCountdown(); autoTimer=setInterval(()=>{ boot(); }, AUTO_MIN*60*1000); }
   else { nextReloadAt=null; updateCountdown(); }
 }
-
-
-
-// ---- Geo/Macro language preference + sources ----
-let GEO_LANG = (localStorage.getItem('geoLang') || 'en'); // English preferred by default
-function applyGeoLangUI(){
-  const sel = q('#geoLangSel'); if(sel){ sel.value = GEO_LANG; sel.addEventListener('change',()=>{
-    GEO_LANG = sel.value; localStorage.setItem('geoLang', GEO_LANG);
-    updateGeoTopics(true);
-  });}
-}
-function normalizeBulletsForLang(bullets, lang){
-  // Keep as-is; server should honor language. As fallback, we just return given bullets.
-  return bullets || [];
-}
-function renderGeoSources(items){
-  try{
-    const box = q('#geoSrcList'); if(!box) return;
-    const domains = Array.from(new Set(items.map(it => (it.domain || new URL(it.url).hostname).replace(/^www\./,''))));
-    const max = Math.min(6, domains.length);
-    const parts = domains.slice(0,max).map(d => `<a href="https://${d}" target="_blank" rel="noopener">${d}</a>`);
-    box.innerHTML = parts.length ? `Quellen: ${parts.join(' · ')}` : '';
-  }catch(_){}
-}
-
-// === KI‑gestützte Geo/Makro‑Themen (4h, kompakt) ===
-async function fetchGeoFeed(){ try{
-  const r = await fetch('/api/geo_feed', {cache:'no-store'});
-  if(!r.ok) throw new Error('HTTP '+r.status);
-  return await r.json();
-}catch(e){ console.warn('geo_feed error:', e); return {items:[], error:String(e)}; }}
-
-function renderGeoTopicsCompact(items, bullets){
-  const list = q('#geoTopicsList'); if(!list) return;
-  list.innerHTML = '';
-  const n = Math.min(4, items.length, (bullets&&bullets.length)||0);
-  for(let i=0;i<n;i++){
-    const it = items[i]; const b = (bullets[i]||'').replace(/^[-•\s]+/, '').trim();
-    const li = document.createElement('li');
-    const idx = i+1;
-    const a = document.createElement('a'); a.href = it.url; a.target='_blank'; a.rel='noopener';
-    const domain = it.domain || (new URL(it.url)).hostname.replace(/^www\./,'');
-    a.textContent = `${domain} – ${ (it.title||'').trim().slice(0,120) }`;
-    li.textContent = `• ${b} (`;
-    li.appendChild(a);
-    li.appendChild(document.createTextNode(')'));
-    list.appendChild(li);
-  }
-}
-
-async function updateGeoTopics(force=false){
-  const st = q('#geoFeedStatus'); if(st) st.textContent = 'lädt…';
-  // Cache < 4h
-  try{
-    const j = JSON.parse(localStorage.getItem('geoTopicsCacheCompact')||'{}');
-    if(!force && j.ts && (Date.now()-j.ts) < 4*60*60*1000 && Array.isArray(j.items) && Array.isArray(j.bullets)){
-      renderGeoTopicsCompact(j.items, j.bullets);
-    renderGeoSources(j.items);
-      if(st) st.textContent = 'aus Cache';
-      return;
-    }
-  }catch(_){}
-  // Fresh
-  const feed = await fetchGeoFeed();
-  const items = (feed && Array.isArray(feed.items)) ? feed.items.slice(0,8) : [];
-  let bullets = [];
-  if(items.length){
-    try{
-      const titles = items.map(it=> it.title || it.domain || 'Quelle');
-      const r = await fetch('/api/summary', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ mode:'list', lang: GEO_LANG, titles })
-      });
-      const j = await r.json();
-      if(Array.isArray(j.bullets)) bullets = normalizeBulletsForLang(j.bullets.slice(0, items.length), GEO_LANG);
-    }catch(e){ console.warn('summary error:', e); }
-  }
-  // Fallback: kurze Titel
-  if(!bullets.length && items.length){
-    bullets = items.map(it => (it.title||'').replace(/\s+/g,' ').trim()).map(t=> t.length>90? t.slice(0,87)+'…' : t);
-  }
-  if(items.length && bullets.length){
-    renderGeoTopicsCompact(items, bullets);
-    renderGeoSources(items);
-    try{ localStorage.setItem('geoTopicsCacheCompact', JSON.stringify({ts:Date.now(), items, bullets})); }catch(_){}
-    if(st) st.textContent = 'aktualisiert';
-  }else{
-    if(st) st.textContent = 'n.v.';
-  }
-}
-// ensure first run
-updateGeoTopics(true);
-// schedule
-setInterval(()=>updateGeoTopics(true), 4*60*60*1000);
 
 // ========= Data =========
 
@@ -1035,8 +937,6 @@ async function boot(){
 // ========= Events =========
 window.addEventListener('resize', layoutPad);
 document.addEventListener('DOMContentLoaded', layoutPad);
-applyGeoLangUI();
-const geoBtn=q('#geoReloadBtn'); if(geoBtn){ geoBtn.addEventListener('click', ()=>updateGeoTopics(true)); }
 
 q('#refreshBtn').addEventListener('click', ()=>{ if(AUTO_RELOAD){ nextReloadAt=Date.now()+AUTO_MIN*60*1000; } boot(); });
 q('#openSettingsBtn').addEventListener('click', openSettings);
@@ -1069,6 +969,50 @@ q('#newsHighOnly') && q('#newsHighOnly').addEventListener('change', ()=>{
 
 // Start
 boot();
+
+// Remove legacy controls & old "Heutige Einordnung" header
+function cleanupLegacyGeoBox(){
+  // hide "Heutige Einordnung – manuell pflegbar"
+  for(const sel of ['summary','.collapsible','.title','.row','.small','.muted']){
+    document.querySelectorAll(sel).forEach(el=>{
+      if(/Heutige Einordnung/i.test(el.textContent||'')){
+        const card = el.closest('.card, .box, .panel, .section, .group') || el.parentElement;
+        if(card){ el.remove(); }
+      }
+    });
+  }
+  // remove buttons "Bearbeiten" / "Reset"
+  const btnTexts = [/^\s*Bearbeiten\s*$/i, /^\s*Reset\s*$/i];
+  document.querySelectorAll('button, a.btn').forEach(el=>{
+    const t=(el.textContent||'').trim();
+    if(btnTexts.some(rx=>rx.test(t))) el.remove();
+  });
+  // hide old static "Quellen (nur Referenzen)" row
+  document.querySelectorAll('.muted, .small, p, .row').forEach(el=>{
+    const t=(el.textContent||'').trim();
+    if(/^Quellen\s*\(nur Referenzen\)/i.test(t)) el.classList.add('hidden');
+  });
+}
+document.addEventListener('DOMContentLoaded', cleanupLegacyGeoBox);
+
+
+// External markets banner loader (replaces old settings toggle)
+async function loadMarketsBanner(){
+  try{
+    const r = await fetch('/banner.html', {cache:'no-store'});
+    if(!r.ok) return;
+    const html = await r.text();
+    const slot = document.getElementById('marketsBanner') || (()=>{
+      const d = document.createElement('div'); d.id='marketsBanner'; 
+      const anchor = document.querySelector('#geoTopicsList')?.parentElement || document.body;
+      anchor.parentElement.insertBefore(d, anchor); 
+      return d;
+    })();
+    slot.innerHTML = html;
+  }catch(_){ /* silently ignore */ }
+}
+document.addEventListener('DOMContentLoaded', loadMarketsBanner);
+
 </script>
 
 <div id="cardOverlay" class="overlay" aria-hidden="true">
@@ -1077,84 +1021,6 @@ boot();
     <div id="overlayContent"></div>
   </div>
 </div>
-<script>
-// --- robuster Loader für KI-Themen (zeigt Fehler textlich an) ---
-async function geoFetchJSON(url, opt){ 
-  const r = await fetch(url, opt);
-  // auch Fehlerseiten als Text lesen und sinnvoll behandeln
-  const txt = await r.text();
-  try { return { ok:r.ok, status:r.status, json: JSON.parse(txt) }; }
-  catch { return { ok:r.ok, status:r.status, text: txt }; }
-}
-
-function geoRender(items, bullets){
-  const list = document.querySelector('#geoTopicsList');
-  const status = document.querySelector('#geoFeedStatus');
-  const errBox = document.querySelector('#geoError');
-  list.innerHTML = '';
-  errBox.style.display = 'none'; errBox.textContent = '';
-  const n = Math.min(4, items.length, bullets.length);
-  for(let i=0;i<n;i++){
-    const it = items[i]; const b = (bullets[i]||'').replace(/^[-•\s]+/, '').trim();
-    const li = document.createElement('li');
-    const a = document.createElement('a'); a.href = it.url; a.target = '_blank'; a.rel = 'noopener';
-    const domain = it.domain || new URL(it.url).hostname.replace(/^www\./,'');
-    a.textContent = `${domain} – ${(it.title||'').slice(0,120)}`;
-    li.textContent = `. Thema #${i+1} ${b} (`; li.appendChild(a); li.appendChild(document.createTextNode(')'));
-    list.appendChild(li);
-  }
-  status.textContent = n ? 'aktualisiert' : 'n.v.';
-}
-
-async function loadGeoCompact(force=false){
-  const status = document.querySelector('#geoFeedStatus');
-  const errBox = document.querySelector('#geoError');
-  status.textContent = 'lädt…'; errBox.style.display = 'none'; errBox.textContent = '';
-
-  // 1) Quellen holen
-  const feed = await geoFetchJSON('/api/geo_feed');
-  if(!feed.ok){
-    errBox.style.display = 'block';
-    errBox.textContent = `Geo-Feed Fehler ${feed.status}: ` + (feed.json?.error ? JSON.stringify(feed.json.error) : (feed.text||'keine Details'));
-    status.textContent = 'Fehler';
-    return;
-  }
-  const items = Array.isArray(feed.json.items) ? feed.json.items.slice(0,8) : [];
-
-  // 2) Bullets holen (POST)
-  let bullets = [];
-  if(items.length){
-    const titles = items.map(it=> it.title || it.domain || 'Quelle');
-    const res = await geoFetchJSON('/api/summary', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ titles })
-    });
-    if(!res.ok){
-      // lesbar anzeigen (Gateway/Key/Model-Fehler etc.)
-      errBox.style.display = 'block';
-      errBox.textContent = `Summary Fehler ${res.status}: ` + (res.json?.error ? JSON.stringify(res.json.error) : (res.text||'keine Details'));
-      // Fallback: sehr kurze Titel verwenden, damit trotzdem etwas erscheint
-      bullets = titles.map(t => t.length>90 ? t.slice(0,87)+'…' : t);
-    }else{
-      bullets = Array.isArray(res.json.bullets) ? res.json.bullets.slice(0, items.length) : [];
-    }
-  }
-
-  // 3) Rendern / Fallback
-  if(!bullets.length && items.length){
-    bullets = items.map(it => (it.title||'').trim()).map(t=> t.length>90? t.slice(0,87)+'…':t);
-  }
-  geoRender(items, bullets);
-}
-
-// Button & Timer
-document.addEventListener('DOMContentLoaded', ()=>{
-  const btn = document.querySelector('#geoReloadBtn');
-  if(btn) btn.addEventListener('click', ()=> loadGeoCompact(true));
-  loadGeoCompact(true);
-  setInterval(()=>loadGeoCompact(true), 4*60*60*1000);
-});
-</script>
 
 </body>
 </html>
