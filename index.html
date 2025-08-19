@@ -209,27 +209,6 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
   <section class="section" aria-labelledby="h-geo">
     <h2 id="h-geo">Geopolitik & Makro (kompakt) <span class="badge" id="ts-geo">–</span></h2>
     <details class="geo" id="geoPanel" open>
-      <div class="row between center" style="margin-top:.5rem">
-  <div class="title small">KI-Themen (alle 4 h, kompakt)</div>
-  <div class="small muted" id="geoFeedStatus">bereit</div>
-</div>
-<summary><strong>Heutige Einordnung</strong> – manuell pflegbar</summary>
-      <ul class="bullets" id="geoBullets" aria-live="polite"></ul>
-      <div class="toolbar">
-        <button class="btn" id="editGeoBtn" aria-expanded="false">✎ Bearbeiten</button>
-        <button class="btn" id="resetGeoBtn" title="Auf Vorlage zurücksetzen">↺ Reset</button>
-      </div>
-      <div id="geoEditor" style="display:none;margin-top:8px">
-        <label for="geoInput" class="small muted">Ein Bullet pro Zeile (max. 5):</label>
-        <textarea id="geoInput" rows="6" style="width:100%;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px"></textarea>
-        <div style="margin-top:6px">
-          <button class="btn" id="saveGeoBtn">✔ Speichern</button>
-          <span class="hint small">Wird lokal im Browser gespeichert.</span>
-        </div>
-      </div>
- <section class="section" aria-labelledby="h-geo">
-    <h2 id="h-geo">Geopolitik & Makro (kompakt) <span class="badge" id="ts-geo">–</span></h2>
-    <details class="geo" id="geoPanel" open>
       <summary><strong>Heutige Einordnung</strong> – manuell pflegbar</summary>
       <ul class="bullets" id="geoBullets" aria-live="polite"></ul>
       <div class="toolbar">
@@ -244,11 +223,6 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
           <span class="hint small">Wird lokal im Browser gespeichert.</span>
         </div>
       </div>
-
-
-
-
-      
       <div class="hint small">Quellen (nur Referenzen):
   <a href="https://www.coingecko.com/en/api/documentation" target="_blank" rel="noopener">CoinGecko API</a> ·
   <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> ·
@@ -1057,84 +1031,6 @@ boot();
     <div id="overlayContent"></div>
   </div>
 </div>
-<script>
-// --- robuster Loader für KI-Themen (zeigt Fehler textlich an) ---
-async function geoFetchJSON(url, opt){ 
-  const r = await fetch(url, opt);
-  // auch Fehlerseiten als Text lesen und sinnvoll behandeln
-  const txt = await r.text();
-  try { return { ok:r.ok, status:r.status, json: JSON.parse(txt) }; }
-  catch { return { ok:r.ok, status:r.status, text: txt }; }
-}
-
-function geoRender(items, bullets){
-  const list = document.querySelector('#geoTopicsList');
-  const status = document.querySelector('#geoFeedStatus');
-  const errBox = document.querySelector('#geoError');
-  list.innerHTML = '';
-  errBox.style.display = 'none'; errBox.textContent = '';
-  const n = Math.min(4, items.length, bullets.length);
-  for(let i=0;i<n;i++){
-    const it = items[i]; const b = (bullets[i]||'').replace(/^[-•\s]+/, '').trim();
-    const li = document.createElement('li');
-    const a = document.createElement('a'); a.href = it.url; a.target = '_blank'; a.rel = 'noopener';
-    const domain = it.domain || new URL(it.url).hostname.replace(/^www\./,'');
-    a.textContent = `${domain} – ${(it.title||'').slice(0,120)}`;
-    li.textContent = `. Thema #${i+1} ${b} (`; li.appendChild(a); li.appendChild(document.createTextNode(')'));
-    list.appendChild(li);
-  }
-  status.textContent = n ? 'aktualisiert' : 'n.v.';
-}
-
-async function loadGeoCompact(force=false){
-  const status = document.querySelector('#geoFeedStatus');
-  const errBox = document.querySelector('#geoError');
-  status.textContent = 'lädt…'; errBox.style.display = 'none'; errBox.textContent = '';
-
-  // 1) Quellen holen
-  const feed = await geoFetchJSON('/api/geo_feed');
-  if(!feed.ok){
-    errBox.style.display = 'block';
-    errBox.textContent = `Geo-Feed Fehler ${feed.status}: ` + (feed.json?.error ? JSON.stringify(feed.json.error) : (feed.text||'keine Details'));
-    status.textContent = 'Fehler';
-    return;
-  }
-  const items = Array.isArray(feed.json.items) ? feed.json.items.slice(0,8) : [];
-
-  // 2) Bullets holen (POST)
-  let bullets = [];
-  if(items.length){
-    const titles = items.map(it=> it.title || it.domain || 'Quelle');
-    const res = await geoFetchJSON('/api/summary', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ titles })
-    });
-    if(!res.ok){
-      // lesbar anzeigen (Gateway/Key/Model-Fehler etc.)
-      errBox.style.display = 'block';
-      errBox.textContent = `Summary Fehler ${res.status}: ` + (res.json?.error ? JSON.stringify(res.json.error) : (res.text||'keine Details'));
-      // Fallback: sehr kurze Titel verwenden, damit trotzdem etwas erscheint
-      bullets = titles.map(t => t.length>90 ? t.slice(0,87)+'…' : t);
-    }else{
-      bullets = Array.isArray(res.json.bullets) ? res.json.bullets.slice(0, items.length) : [];
-    }
-  }
-
-  // 3) Rendern / Fallback
-  if(!bullets.length && items.length){
-    bullets = items.map(it => (it.title||'').trim()).map(t=> t.length>90? t.slice(0,87)+'…':t);
-  }
-  geoRender(items, bullets);
-}
-
-// Button & Timer
-document.addEventListener('DOMContentLoaded', ()=>{
-  const btn = document.querySelector('#geoReloadBtn');
-  if(btn) btn.addEventListener('click', ()=> loadGeoCompact(true));
-  loadGeoCompact(true);
-  setInterval(()=>loadGeoCompact(true), 4*60*60*1000);
-});
-</script>
 
 </body>
 </html>
