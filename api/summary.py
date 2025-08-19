@@ -16,13 +16,12 @@ def respond(h, code, data):
     h.send_header("Access-Control-Allow-Origin", ALLOWED)
     h.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
     h.send_header("Access-Control-Allow-Headers", "Content-Type")
-    h.send_header("Cache-Control", "no-store")
     h.end_headers()
     h.wfile.write(json.dumps(data, ensure_ascii=False).encode("utf-8"))
 
 def chat(messages):
     if not API_KEY:
-        return None, {"error":"missing_api_key","hint":"Set OPENAI_API_KEY or AI_GATEWAY_API_KEY."}
+        return None, {"error":"missing_api_key","hint":"Set AI_GATEWAY_API_KEY (or OPENAI_API_KEY)."} 
     body = {"messages": messages, "temperature": 0.2}
     if INCLUDE_MODEL: body["model"] = MODEL
     req = urllib.request.Request(
@@ -37,7 +36,7 @@ def chat(messages):
     except urllib.error.HTTPError as e:
         raw = e.read().decode("utf-8","replace")
         try: payload = json.loads(raw)
-        except Exception: payload = {"message": raw[:200]}
+        except Exception: payload = {"message": raw[:300]}
         return None, {"http_status": e.code, "provider_error": payload}
     except urllib.error.URLError as e:
         return None, {"network_error": str(e.reason)}
@@ -45,29 +44,16 @@ def chat(messages):
         return None, {"exception": str(e)}
 
 def bullets_from_titles(titles, lang="en"):
+    # Enforce translation to target lang for any non-English headlines
     lang = (lang or "en").lower()
     if lang.startswith("de"):
-        sys = "Du antwortest auf Deutsch. Schreibe für jede Schlagzeile GENAU EINEN knappen Bullet-Satz (max 120 Zeichen), sachlich, ohne Emojis/Anführungszeichen, Reihenfolge beibehalten."
-    elif lang.startswith("en") or lang=="auto":
-        sys = "You answer in concise English. For each headline write EXACTLY ONE compact bullet sentence (max 120 chars), no emojis/quotes, preserve order."
+        sys = "Antworte immer auf Deutsch. Paraphrasiere/übersetze JEDE Schlagzeile in GENAU EINEN knappen Bullet-Satz (max 120 Zeichen), sachlich, ohne Emojis/Anführungszeichen. Bewahre die Reihenfolge."
     else:
-        sys = "You answer in concise English. For each headline write EXACTLY ONE compact bullet sentence (max 120 chars), no emojis/quotes, preserve order."
-    user = "\n".join([f"- {t}" for t in titles])
+        sys = "Answer in concise English. For each headline, translate if needed and write EXACTLY ONE compact bullet sentence (max 120 chars), no emojis/quotes. Keep order."
+    user = "\\n".join([f"- {t}" for t in titles])
     text, err = chat([{"role":"system","content":sys},{"role":"user","content":user}])
     if err: return None, err
     lines = [l.strip(" -•") for l in text.splitlines() if l.strip()]
-    return lines, None
-
-def bullets_from_hints(hints, lang="en"):
-    if (lang or "en").lower().startswith("de"):
-        sys = "Du bist ein knapper, sachlicher Analyst. Schreibe 3 kurze Bullet-Sätze (max 240 Zeichen), direkt, ohne Emojis, auf Deutsch."
-        usr = f"Fasse die aktuelle Kryptolage in 3 Bullet-Sätzen zusammen. Hinweise: {hints}"
-    else:
-        sys = "You are a concise, matter-of-fact analyst. Write 3 short bullet sentences (max 240 chars), direct, no emojis, in English."
-        usr = f"Summarize the current crypto situation in 3 bullet sentences. Hints: {hints}"
-    text, err = chat([{"role":"system","content":sys},{"role":"user","content":usr}])
-    if err: return None, err
-    lines = [l.strip(" -•") for l in text.splitlines() if l.strip()][:3]
     return lines, None
 
 class handler(BaseHTTPRequestHandler):
@@ -81,12 +67,9 @@ class handler(BaseHTTPRequestHandler):
         except Exception:
             data = {}
         lang = data.get("lang") or "en"
-        if isinstance(data.get("titles"), list) and data["titles"]:
-            lines, err = bullets_from_titles(data["titles"][:8], lang=lang)
-        else:
-            hints = data.get("hints") or ""
-            lines, err = bullets_from_hints(hints, lang=lang)
-        if err:
-            respond(self, 502 if ('http_status' in err or 'network_error' in err) else 501, {"error": err})
-        else:
-            respond(self, 200, {"bullets": lines})
+        titles = (data.get("titles") or [])[:4]  # hard limit 4
+        if titles:
+            lines, err = bullets_from_titles(titles, lang=lang)
+            if err: respond(self, 502, {"error": err}); return
+            respond(self, 200, {"bullets": lines}); return
+        respond(self, 400, {"error":"missing titles"})
