@@ -227,6 +227,7 @@ ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
           <option value="auto">Auto</option>
         </select>
       </label>
+      <label class="small muted" style="margin-left:8px"><input type="checkbox" id="geoTranslateToggle"> Quellen via Übersetzer öffnen</label>
     </div>
     <ul id="geoTopicsList" class="bullets"></ul>
     <div id="geoSrcList" class="small muted"></div>
@@ -285,7 +286,6 @@ ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
             <input type="radio" id="ccy_gbp" name="ccy" value="GBP"><label for="ccy_gbp">GBP</label>
             <input type="radio" id="ccy_jpy" name="ccy" value="JPY"><label for="ccy_jpy">JPY</label>
           </div>
-          <label class="switch" style="margin-top:8px"><input type="checkbox" id="geoTranslateToggle"><span>Quellen via Übersetzer öffnen</span></label>
           <div class="small" style="margin-top:8px">Anzahl Coins</div>
           <div class="seg">
             <input type="radio" id="cnt_5" name="count" value="5"><label for="cnt_5">Top‑5</label>
@@ -336,7 +336,7 @@ ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
   <div class="wrap">
     <div class="row">
       <div class="small">© 2025 OneSide Crypto. All Rights Reserved. <strong>Version:</strong> build-20250817-210352-UTC</div>
-      \1<a href="https://www.coingecko.com/en/api/documentation" target="_blank" rel="noopener">CoinGecko API</a> · <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> · <a href="https://exchangerate.host/" target="_blank" rel="noopener">exchangerate.host</a> · <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener">alternative.me (FGI)</a> · <a href="https://binance-docs.github.io/apidocs/spot/en/#24hr-ticker-price-change-statistics" target="_blank" rel="noopener">Binance 24h Ticker</a> · <a href="https://binance-docs.github.io/apidocs/futures/en/#get-mark-price-and-funding-rate" target="_blank" rel="noopener">Binance Futures Funding</a> · <a href="https://mempool.space/api" target="_blank" rel="noopener">mempool.space API</a>\3
+      <div class="small">Quellen (APIs): <a href="https://www.coingecko.com/en/api/documentation" target="_blank" rel="noopener">CoinGecko API</a> · <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> · <a href="https://exchangerate.host/" target="_blank" rel="noopener">exchangerate.host</a> · <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener">alternative.me (FGI)</a> · <a href="https://binance-docs.github.io/apidocs/spot/en/#24hr-ticker-price-change-statistics" target="_blank" rel="noopener">Binance 24h Ticker</a> · <a href="https://binance-docs.github.io/apidocs/futures/en/#get-mark-price-and-funding-rate" target="_blank" rel="noopener">Binance Futures Funding</a> · <a href="https://mempool.space/api" target="_blank" rel="noopener">mempool.space API</a></div>
       <div class="small">Weitere Referenzen: 
         <a href="https://www.google.com/finance/" target="_blank" rel="noopener">Google Finance</a> ·
         <a href="https://seekingalpha.com/" target="_blank" rel="noopener">Seeking Alpha</a> ·
@@ -369,7 +369,7 @@ let THEME=localStorage.getItem('theme')||'dark';
 let TREND_BG=(localStorage.getItem('trendBg')||'off')==='on';
 let SHOW_DYOR=(localStorage.getItem('showDyor')||'on')==='on';
 let SHOW_BUZZ=(localStorage.getItem('showBuzz')||'on')==='on';
-let SHOW_EXCH=true;
+let SHOW_EXCH=(localStorage.getItem('showExch')||'on')==='on';
 let AUTO_RELOAD=(localStorage.getItem('autoReload')||'off')==='on';
 let AUTO_MIN=parseInt(localStorage.getItem('autoMin')||'15',10);
 
@@ -378,7 +378,7 @@ let autoTimer=null; let nextReloadAt=null; let countdownTimer=null;
 
 function applyTheme(){ document.documentElement.setAttribute('data-theme',THEME); }
 function applyTrendBg(){ document.body.classList.toggle('trend-on',!!TREND_BG); }
-function applyShowExch(){ const sec=document.getElementById('exchangesSection'); if(sec){ sec.style.display = ''; } }
+function applyShowExch(){ const sec=document.getElementById('exchangesSection'); if(sec){ sec.style.display = SHOW_EXCH ? '' : 'none'; } }
 function updateAutoLabel(){ const el=q('#autoLbl'); if(el) el.textContent='Auto '+AUTO_MIN+' min'; }
 function updateCountdown(){
   const el=q('#autoCountdown'); if(!el) return;
@@ -914,96 +914,6 @@ document.addEventListener('click', (e)=>{
 
 
 
-
-// ==== External Markets Banner (optional) ====
-async function loadMarketsBanner(){
-  try{
-    const tryOne = async (u)=>fetch(u,{cache:'no-store'}).then(r=>r.ok?r.text():null).catch(()=>null);
-    const html = await tryOne('/banner') || await tryOne('/banner.html');
-    if(html){ const box=document.getElementById('marketsBanner'); if(box) box.innerHTML=html; }
-  }catch(_){}
-}
-document.addEventListener('DOMContentLoaded', loadMarketsBanner);
-
-// ==== Geo/Makro compact (AI) ====
-(function(){
-  const $=(s,r=document)=>r.querySelector(s);
-  const load=(k,d)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(_){ return d; }};
-  const store=(k,v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(_){}};
-  let GEO_LANG = load('geoLang','en');
-  let GEO_TRANSLATE = (localStorage.getItem('geoTranslate')||'off')==='on';
-
-  function bindUI(){
-    const sel=$('#geoLangSel'); if(sel){ sel.value=GEO_LANG; sel.addEventListener('change',()=>{ GEO_LANG=sel.value; store('geoLang',GEO_LANG); updateGeo(true); }); }
-    const btn=$('#geoReloadBtn'); if(btn){ btn.addEventListener('click', ()=> updateGeo(true)); }
-    const tr=$('#geoTranslateToggle'); if(tr){ tr.checked=GEO_TRANSLATE; tr.addEventListener('change',()=>{ GEO_TRANSLATE=!!tr.checked; localStorage.setItem('geoTranslate', GEO_TRANSLATE?'on':'off'); updateGeo(true); }); }
-  }
-
-  function tUrl(u){
-    try{ if(!GEO_TRANSLATE) return u;
-      const lang=(GEO_LANG==='auto'?'de':GEO_LANG); // default to de if auto
-      return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(lang)}&u=${encodeURIComponent(u)}`;
-    }catch(_){ return u; }
-  }
-
-  async function getJSONorText(res){ const txt=await res.text(); try{ return [res.ok,res.status,JSON.parse(txt)]; }catch(_){ return [res.ok,res.status,txt]; } }
-  function domainOf(url){ try{ return new URL(url).hostname.replace(/^www\./,''); }catch(_){ return ''; } }
-  function renderSources(items){
-    const box=$('#geoSrcList'); if(!box) return;
-    const uniq=Array.from(new Set(items.map(i=>i.domain||domainOf(i.url)))).filter(Boolean).slice(0,6);
-    box.innerHTML = uniq.length ? 'Quellen: ' + uniq.map(d=> `<a href="https://${d}" target="_blank" rel="noopener">${d}</a>`).join(' · ') : '';
-  }
-
-  async function updateGeo(force){
-    const list=$('#geoTopicsList'); const err=$('#geoError'); const ts=$('#ts-geo');
-    if(!list) return;
-    if(!force){
-      try{
-        const c=JSON.parse(localStorage.getItem('geoTopicsCacheCompact')||'null');
-        if(c && (Date.now()-c.ts)<(4*60*60*1000)){
-          list.innerHTML=c.html; $('#geoSrcList').innerHTML=c.srcs; if(ts) ts.textContent='aus Cache'; return;
-        }
-      }catch(_){}
-    }
-    if(ts) ts.textContent='lädt…'; if(err){ err.style.display='none'; err.textContent=''; }
-
-    let ok,s,d;
-    try{ [ok,s,d] = await getJSONorText(await fetch('/api/geo_feed',{cache:'no-store'})); }catch(e){ ok=false; s=0; d=String(e); }
-    if(!ok){ if(err){ err.style.display='block'; err.textContent=`Geo-Feed Fehler ${s}: ${typeof d==='string'?d:JSON.stringify(d)}`; } if(ts) ts.textContent='Fehler'; return; }
-
-    const items = Array.isArray(d.items)? d.items.slice(0,8) : [];
-    if(!items.length){ list.innerHTML=''; if(ts) ts.textContent='n.v.'; return; }
-
-    let bullets=[];
-    try{
-      const [ok2,s2,d2] = await getJSONorText(await fetch('/api/summary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titles:items.slice(0,4).map(i=>i.title||i.domain||'Source'),lang:GEO_LANG})}));
-      if(ok2 && Array.isArray(d2.bullets)) bullets = d2.bullets;
-      else bullets = items.map(i=> String(i.title||'').trim()).map(t=> t.length>100 ? t.slice(0,97)+'…' : t);
-    }catch(_){
-      bullets = items.map(i=> String(i.title||'').trim()).map(t=> t.length>100 ? t.slice(0,97)+'…' : t);
-    }
-
-    list.innerHTML='';
-    const n=Math.min(4, items.length, bullets.length);
-    for(let i=0;i<n;i++){
-      const it=items[i]; const b=String(bullets[i]||'').replace(/^[-•\\s]+/,'').trim();
-      const li=document.createElement('li');
-      const a=document.createElement('a'); a.href=tUrl(it.url); a.target='_blank'; a.rel='noopener';
-      const dmn= it.domain || domainOf(it.url);
-      a.textContent = `${dmn} – ${(it.title||'').slice(0,120)}`;
-      li.textContent = `• ${b} (`; li.appendChild(a); li.appendChild(document.createTextNode(')'));
-      list.appendChild(li);
-    }
-    renderSources(items);
-    if(ts) ts.textContent='aktualisiert';
-    try{ localStorage.setItem('geoTopicsCacheCompact', JSON.stringify({ts:Date.now(), html:list.innerHTML, srcs: $('#geoSrcList').innerHTML})); }catch(_){}
-  }
-
-  document.addEventListener('DOMContentLoaded', ()=>{ bindUI(); updateGeo(true); });
-  // refresh every 4h
-  setInterval(()=>updateGeo(true), 4*60*60*1000);
-})();
-
 // ========= Szenario =========
 function momentumScore(c){
   let s=0.5;
@@ -1066,7 +976,7 @@ function populateSettings(){
   qa('input[name="count"]').forEach(r=>r.checked=(parseInt(r.value,10)===COUNT));
   qa('input[name="range"]').forEach(r=>r.checked=(parseInt(r.value,10)===RANGE));
   qa('input[name="theme"]').forEach(r=>r.checked=(r.value===THEME));
-  q('#trendBgToggle').checked=TREND_BG; q('#dyorToggle').checked=SHOW_DYOR; q('#buzzToggle').checked=SHOW_BUZZ; /* showExch removed */
+  q('#trendBgToggle').checked=TREND_BG; q('#dyorToggle').checked=SHOW_DYOR; q('#buzzToggle').checked=SHOW_BUZZ; q('#showExchToggle').checked=SHOW_EXCH;
   q('#autoReloadToggleSettings').checked=AUTO_RELOAD; qa('input[name="ar"]').forEach(r=>r.checked=(parseInt(r.value,10)===AUTO_MIN));
 }
 function openSettings(){ populateSettings(); const m=q('#settingsModal'); m.setAttribute('open',''); m.removeAttribute('aria-hidden'); }
@@ -1080,7 +990,7 @@ function onSettingsSubmit(e){
   TREND_BG=!!q('#trendBgToggle').checked; localStorage.setItem('trendBg',TREND_BG?'on':'off');
   SHOW_DYOR=!!q('#dyorToggle').checked; localStorage.setItem('showDyor',SHOW_DYOR?'on':'off');
   SHOW_BUZZ=!!q('#buzzToggle').checked; localStorage.setItem('showBuzz',SHOW_BUZZ?'on':'off');
-  /* showExch removed */ localStorage.setItem('showExch',SHOW_EXCH?'on':'off');
+  SHOW_EXCH=!!q('#showExchToggle').checked; localStorage.setItem('showExch',SHOW_EXCH?'on':'off');
   const auto=q('#autoReloadToggleSettings'); setAutoReload(!!auto.checked);
   const iv=q('input[name="ar"]:checked'); AUTO_MIN=parseInt(iv?iv.value:'15',10)||15; localStorage.setItem('autoMin',String(AUTO_MIN)); updateAutoLabel();
   closeSettings(); applyTheme(); applyTrendBg(); applyShowExch(); layoutPad(); boot();
@@ -1221,6 +1131,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
   loadGeoCompact(true);
   setInterval(()=>loadGeoCompact(true), 4*60*60*1000);
 });
+</script>
+
+
+<script>
+// Banner
+async function loadMarketsBanner(){
+  try{
+    const tryOne = async (u)=>fetch(u,{cache:'no-store'}).then(r=>r.ok?r.text():null).catch(()=>null);
+    const html = await tryOne('/banner') || await tryOne('/banner.html');
+    if(html){ const box=document.getElementById('marketsBanner'); if(box) box.innerHTML=html; }
+  }catch(_){}
+}
+document.addEventListener('DOMContentLoaded', loadMarketsBanner);
 </script>
 
 </body>

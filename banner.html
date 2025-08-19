@@ -1,46 +1,26 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    :root{ --bg:#0b1220; --fg:#e5e7eb; --muted:#9ca3af; --accent:#7c3aed; }
-    body{ margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif; background:transparent; }
-    .banner{ display:flex; align-items:center; gap:12px; padding:10px 14px; 
-             background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(14,165,233,.08));
-             border:1px solid rgba(124,58,237,.25); color:var(--fg); border-radius:14px; }
-    .label{ font-weight:600; letter-spacing:.2px; }
-    .strip{ display:flex; gap:12px; flex-wrap:wrap; font-size:.9rem; }
-    .pill{ padding:4px 8px; border-radius:999px; background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.08); }
-    .pill b{ font-weight:600; margin-right:4px; }
-    .cta{ margin-left:auto; }
-    .cta a{ color:white; text-decoration:none; background:var(--accent); padding:6px 10px; border-radius:10px; }
-  </style>
-</head>
-<body>
-  <div class="banner">
-    <div class="label">Markets</div>
-    <div class="strip">
-      <span class="pill"><b>BTC</b><span id="b_btc">—</span></span>
-      <span class="pill"><b>ETH</b><span id="b_eth">—</span></span>
-      <span class="pill"><b>EUR/USD</b><span id="b_eurusd">—</span></span>
-    </div>
-    <div class="cta"><a href="/" target="_top" rel="noopener">Open</a></div>
-  </div>
-  <script>
-    (async()=>{
-      try{
-        const cg = await fetch('https://api.coinlore.net/api/ticker/?id=90,80',{cache:'no-store'}).then(r=>r.json());
-        const m = {}; for(const x of cg) m[x.symbol]=x.price_usd;
-        document.getElementById('b_btc').textContent = m.BTC ? '$'+Number(m.BTC).toFixed(0) : '—';
-        document.getElementById('b_eth').textContent = m.ETH ? '$'+Number(m.ETH).toFixed(0) : '—';
-      }catch(_){}
-      try{
-        const fx = await fetch('https://api.exchangerate.host/latest?base=EUR&symbols=USD',{cache:'no-store'}).then(r=>r.json());
-        const v = fx.rates && fx.rates.USD;
-        document.getElementById('b_eurusd').textContent = v ? v.toFixed(4) : '—';
-      }catch(_){}
-    })();
-  </script>
-</body>
-</html>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--fg:#e5e7eb;--accent:#7c3aed}
+body{margin:0;font:14px/1.4 system-ui,Segoe UI,Roboto,Arial,sans-serif;background:transparent;color:var(--fg)}
+.wrap{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid rgba(124,58,237,.25);border-radius:14px;
+background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(14,165,233,.08))}
+.p{padding:4px 8px;border-radius:999px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08)}
+.p b{margin-right:4px}
+.t{font-weight:700;opacity:.9}
+</style></head><body>
+<div class="wrap"><div class="t">Markets</div><div class="p"><b>BTC</b><span id="b1">—</span></div><div class="p"><b>ETH</b><span id="b2">—</span></div><div class="p"><b>EUR/USD</b><span id="b3">—</span></div></div>
+<script>
+(async()=>{
+  try{
+    const cg = await fetch('https://api.coinlore.net/api/ticker/?id=90,80',{cache:'no-store'}).then(r=>r.json());
+    const m = {}; for(const x of cg) m[x.symbol]=x.price_usd;
+    document.getElementById('b1').textContent = m.BTC ? '$'+Number(m.BTC).toFixed(0) : '—';
+    document.getElementById('b2').textContent = m.ETH ? '$'+Number(m.ETH).toFixed(0) : '—';
+  }catch(_){}
+  try{
+    const fx = await fetch('https://api.exchangerate.host/latest?base=EUR&symbols=USD',{cache:'no-store'}).then(r=>r.json());
+    const v = fx.rates && fx.rates.USD;
+    document.getElementById('b3').textContent = v ? v.toFixed(4) : '—';
+  }catch(_){}
+})();
+</script></body></html>
