@@ -150,7 +150,15 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 .pulse-grid .red .kval{color:#ef4444}
 .pulse-grid .green .kval{color:#22c55e}
 .pulse-grid .yellow .kval{color:#eab308}
-.stale{border-color:var(--amber);color:var(--amber)}
+
+/* compact bullets for KI-Themen */
+ul.bullets{ list-style:none; padding-left:0; margin:6px 0 }
+ul.bullets li{ font-size:.9rem; line-height:1.35; margin:2px 0 }
+#geoTopicsList li{ font-size:.9rem; }
+#geoToolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:.25rem 0 .5rem 0 }
+#geoToolbar .muted{ font-size:.8rem }
+#geoSrcList{ font-size:.8rem; color:var(--muted); margin-top:4px }
+
 </style>
 </head>
 <body>
@@ -169,6 +177,7 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 </header>
 
 <main class="wrap">
+  <div id="marketsBanner"></div>
   <div class="hint small" id="globalStatus" aria-live="polite">Initialisiere…</div>
 
   <section class="section">
@@ -209,8 +218,8 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 <!-- Geopolitik & Makro -->
   <section class="section" aria-labelledby="h-geo">
     <h2 id="h-geo">Geopolitik &amp; Makro (kompakt) <span class="badge" id="ts-geo">–</span></h2>
-    <div id="geoToolbar" class="toolbar" style="margin:6px 0 8px;gap:8px;flex-wrap:wrap">
-      <button class="btn small" id="geoReloadBtn" type="button">↻ Neu laden</button>
+    <div id="geoToolbar">
+      <button id="geoReloadBtn" class="btn small" type="button">↻ Neu laden</button>
       <label class="small muted">Sprache
         <select id="geoLangSel" class="btn small" style="padding:4px 8px">
           <option value="en">EN</option>
@@ -276,6 +285,7 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
             <input type="radio" id="ccy_gbp" name="ccy" value="GBP"><label for="ccy_gbp">GBP</label>
             <input type="radio" id="ccy_jpy" name="ccy" value="JPY"><label for="ccy_jpy">JPY</label>
           </div>
+          <label class="switch" style="margin-top:8px"><input type="checkbox" id="geoTranslateToggle"><span>Quellen via Übersetzer öffnen</span></label>
           <div class="small" style="margin-top:8px">Anzahl Coins</div>
           <div class="seg">
             <input type="radio" id="cnt_5" name="count" value="5"><label for="cnt_5">Top‑5</label>
@@ -326,16 +336,7 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
   <div class="wrap">
     <div class="row">
       <div class="small">© 2025 OneSide Crypto. All Rights Reserved. <strong>Version:</strong> build-20250817-210352-UTC</div>
-      <div class="small">Quellen (APIs): 
-        <a href="https://www.coingecko.com/api/documentations/v3" target="_blank" rel="noopener">CoinGecko API</a> ·
-        <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> ·
-        <a href="https://exchangerate.host/#/" target="_blank" rel="noopener">exchangerate.host (FX)</a> ·
-        <a href="https://api.alternative.me/fng/" target="_blank" rel="noopener">alternative.me (FGI)</a> ·
-        <a href="https://binance-docs.github.io/apidocs/spot/en/#24hr-ticker-price-change-statistics" target="_blank" rel="noopener">Binance 24h Ticker</a> ·
-        <a href="https://www.okx.com/docs-v5/en/#public-data-rest-api-get-funding-rate" target="_blank" rel="noopener">OKX Funding API</a> ·
-        <a href="https://bybit-exchange.github.io/docs/v5/market/funding" target="_blank" rel="noopener">Bybit Funding API</a> ·
-        <a href="https://mempool.space/docs/api/rest" target="_blank" rel="noopener">mempool.space API</a>
-      </div>
+      \1<a href="https://www.coingecko.com/en/api/documentation" target="_blank" rel="noopener">CoinGecko API</a> · <a href="https://www.coinlore.com/cryptocurrency-data-api" target="_blank" rel="noopener">CoinLore API</a> · <a href="https://exchangerate.host/" target="_blank" rel="noopener">exchangerate.host</a> · <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener">alternative.me (FGI)</a> · <a href="https://binance-docs.github.io/apidocs/spot/en/#24hr-ticker-price-change-statistics" target="_blank" rel="noopener">Binance 24h Ticker</a> · <a href="https://binance-docs.github.io/apidocs/futures/en/#get-mark-price-and-funding-rate" target="_blank" rel="noopener">Binance Futures Funding</a> · <a href="https://mempool.space/api" target="_blank" rel="noopener">mempool.space API</a>\3
       <div class="small">Weitere Referenzen: 
         <a href="https://www.google.com/finance/" target="_blank" rel="noopener">Google Finance</a> ·
         <a href="https://seekingalpha.com/" target="_blank" rel="noopener">Seeking Alpha</a> ·
@@ -368,7 +369,7 @@ let THEME=localStorage.getItem('theme')||'dark';
 let TREND_BG=(localStorage.getItem('trendBg')||'off')==='on';
 let SHOW_DYOR=(localStorage.getItem('showDyor')||'on')==='on';
 let SHOW_BUZZ=(localStorage.getItem('showBuzz')||'on')==='on';
-let SHOW_EXCH=(localStorage.getItem('showExch')||'on')==='on';
+let SHOW_EXCH=true;
 let AUTO_RELOAD=(localStorage.getItem('autoReload')||'off')==='on';
 let AUTO_MIN=parseInt(localStorage.getItem('autoMin')||'15',10);
 
@@ -377,7 +378,7 @@ let autoTimer=null; let nextReloadAt=null; let countdownTimer=null;
 
 function applyTheme(){ document.documentElement.setAttribute('data-theme',THEME); }
 function applyTrendBg(){ document.body.classList.toggle('trend-on',!!TREND_BG); }
-function applyShowExch(){ const sec=document.getElementById('exchangesSection'); if(sec){ sec.style.display = SHOW_EXCH ? '' : 'none'; } }
+function applyShowExch(){ const sec=document.getElementById('exchangesSection'); if(sec){ sec.style.display = ''; } }
 function updateAutoLabel(){ const el=q('#autoLbl'); if(el) el.textContent='Auto '+AUTO_MIN+' min'; }
 function updateCountdown(){
   const el=q('#autoCountdown'); if(!el) return;
@@ -405,22 +406,101 @@ function setAutoReload(enabled){
   else { nextReloadAt=null; updateCountdown(); }
 }
 
-// ========= Data =========
-// --- Local cache for Top Coins (stale fallback) ---
-function saveTopCache(list, srcTag){
+
+
+// ---- Geo/Macro language preference + sources ----
+let GEO_LANG = (localStorage.getItem('geoLang') || 'en'); // English preferred by default
+function applyGeoLangUI(){
+  const sel = q('#geoLangSel'); if(sel){ sel.value = GEO_LANG; sel.addEventListener('change',()=>{
+    GEO_LANG = sel.value; localStorage.setItem('geoLang', GEO_LANG);
+    updateGeoTopics(true);
+  });}
+}
+function normalizeBulletsForLang(bullets, lang){
+  // Keep as-is; server should honor language. As fallback, we just return given bullets.
+  return bullets || [];
+}
+function renderGeoSources(items){
   try{
-    const payload = { ts: Date.now(), ccy: CURRENCY, count: COUNT, src: srcTag||'', list };
-    localStorage.setItem('topCache', JSON.stringify(payload));
+    const box = q('#geoSrcList'); if(!box) return;
+    const domains = Array.from(new Set(items.map(it => (it.domain || new URL(it.url).hostname).replace(/^www\./,''))));
+    const max = Math.min(6, domains.length);
+    const parts = domains.slice(0,max).map(d => `<a href="https://${d}" target="_blank" rel="noopener">${d}</a>`);
+    box.innerHTML = parts.length ? `Quellen: ${parts.join(' · ')}` : '';
   }catch(_){}
 }
-function loadTopCache(){
-  try{
-    const j = JSON.parse(localStorage.getItem('topCache')||'{}');
-    if(!j || !Array.isArray(j.list)) return null;
-    if((j.ccy||'EUR') !== CURRENCY) return null;
-    return j;
-  }catch(_){ return null; }
+
+// === KI‑gestützte Geo/Makro‑Themen (4h, kompakt) ===
+async function fetchGeoFeed(){ try{
+  const r = await fetch('/api/geo_feed', {cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return await r.json();
+}catch(e){ console.warn('geo_feed error:', e); return {items:[], error:String(e)}; }}
+
+function renderGeoTopicsCompact(items, bullets){
+  const list = q('#geoTopicsList'); if(!list) return;
+  list.innerHTML = '';
+  const n = Math.min(4, items.length, (bullets&&bullets.length)||0);
+  for(let i=0;i<n;i++){
+    const it = items[i]; const b = (bullets[i]||'').replace(/^[-•\s]+/, '').trim();
+    const li = document.createElement('li');
+    const idx = i+1;
+    const a = document.createElement('a'); a.href = it.url; a.target='_blank'; a.rel='noopener';
+    const domain = it.domain || (new URL(it.url)).hostname.replace(/^www\./,'');
+    a.textContent = `${domain} – ${ (it.title||'').trim().slice(0,120) }`;
+    li.textContent = `• ${b} (`;
+    li.appendChild(a);
+    li.appendChild(document.createTextNode(')'));
+    list.appendChild(li);
+  }
 }
+
+async function updateGeoTopics(force=false){
+  const st = q('#geoFeedStatus'); if(st) st.textContent = 'lädt…';
+  // Cache < 4h
+  try{
+    const j = JSON.parse(localStorage.getItem('geoTopicsCacheCompact')||'{}');
+    if(!force && j.ts && (Date.now()-j.ts) < 4*60*60*1000 && Array.isArray(j.items) && Array.isArray(j.bullets)){
+      renderGeoTopicsCompact(j.items, j.bullets);
+    renderGeoSources(j.items);
+      if(st) st.textContent = 'aus Cache';
+      return;
+    }
+  }catch(_){}
+  // Fresh
+  const feed = await fetchGeoFeed();
+  const items = (feed && Array.isArray(feed.items)) ? feed.items.slice(0,8) : [];
+  let bullets = [];
+  if(items.length){
+    try{
+      const titles = items.map(it=> it.title || it.domain || 'Quelle');
+      const r = await fetch('/api/summary', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ mode:'list', lang: GEO_LANG, titles })
+      });
+      const j = await r.json();
+      if(Array.isArray(j.bullets)) bullets = normalizeBulletsForLang(j.bullets.slice(0, items.length), GEO_LANG);
+    }catch(e){ console.warn('summary error:', e); }
+  }
+  // Fallback: kurze Titel
+  if(!bullets.length && items.length){
+    bullets = items.map(it => (it.title||'').replace(/\s+/g,' ').trim()).map(t=> t.length>90? t.slice(0,87)+'…' : t);
+  }
+  if(items.length && bullets.length){
+    renderGeoTopicsCompact(items, bullets);
+    renderGeoSources(items);
+    try{ localStorage.setItem('geoTopicsCacheCompact', JSON.stringify({ts:Date.now(), items, bullets})); }catch(_){}
+    if(st) st.textContent = 'aktualisiert';
+  }else{
+    if(st) st.textContent = 'n.v.';
+  }
+}
+// ensure first run
+updateGeoTopics(true);
+// schedule
+setInterval(()=>updateGeoTopics(true), 4*60*60*1000);
+
+// ========= Data =========
 
 // === Crypto‑Pulse (kompakt) ===
 const STABLE_SYMS = new Set(['USDT','USDC','FDUSD','TUSD','DAI','USDP','USDD','PYUSD','GUSD','EURS','EURT']);
@@ -444,40 +524,23 @@ function setPulseTile(id, {val, sub, state}){
   if(ksub) ksub.textContent = sub||'';
 }
 async function fetchFunding(){
-  const safeJson = async (res)=>{ if(!res.ok) throw new Error('HTTP '+res.status); return res.json(); };
   try{
-    const j = await fetch('/api/funding', {cache:'no-store'}).then(safeJson);
-    const fB = (parseFloat(j.btc)||0)*100;
-    const fE = (parseFloat(j.eth)||0)*100;
-    const next = j.nextFundingTime ? new Date(+j.nextFundingTime) : null;
-    const src = j.src || 'OKX/BYBIT';
-    return {btc:fB, eth:fE, next, src};
-  }catch(e){
-    try{
-      const [b,e2] = await Promise.all([
-        fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT',{timeoutMs:7000}).then(r=>r.json()),
-        fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=ETHUSDT',{timeoutMs:7000}).then(r=>r.json())
-      ]);
-      const fB = (parseFloat(b.lastFundingRate||b.fundingRate)||0)*100;
-      const fE = (parseFloat(e2.lastFundingRate||e2.fundingRate)||0)*100;
-      const next = new Date(+b.nextFundingTime||+e2.nextFundingTime||Date.now());
-      return {btc:fB, eth:fE, next, src:'Binance (client)'};
-    }catch(_){ return {btc:null,eth:null,next:null,src:null}; }
-  }
-}
+    const [b,e] = await Promise.all([
+      fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT',{timeoutMs:7000}).then(r=>r.json()),
+      fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=ETHUSDT',{timeoutMs:7000}).then(r=>r.json())
+    ]);
+    const fB = (parseFloat(b.lastFundingRate||b.fundingRate)||0)*100;
+    const fE = (parseFloat(e.lastFundingRate||e.fundingRate)||0)*100;
+    return {btc:fB, eth:fE, next:new Date(+b.nextFundingTime||+e.nextFundingTime||Date.now())};
+  }catch(_){ return {btc:null,eth:null,next:null}; }
 }
 async function fetchFees(){
-  const safeJson = async (res)=>{ if(!res.ok) throw new Error('HTTP '+res.status); return res.json(); };
   try{
-    const j = await fetch('/api/fees', {cache:'no-store'}).then(safeJson);
-    return {fast: j.fast ?? null, hour: j.hour ?? null};
-  }catch(e){
-    try{
-      const j = await fetchWithTimeout('https://mempool.space/api/v1/fees/recommended',{timeoutMs:7000}).then(r=>r.json());
-      return {fast: j.fastestFee ?? j.high_priority ?? null, hour: j.hourFee ?? j.economyFee ?? null};
-    }catch(_){ return {fast:null,hour:null}; }
-  }
-}
+    const j = await fetchWithTimeout('https://mempool.space/api/v1/fees/recommended',{timeoutMs:7000}).then(r=>r.json());
+    const hi = j.fastestFee??j.high_priority??null;
+    const lo = j.hourFee??j.economyFee??null;
+    return {fast:hi, hour:lo};
+  }catch(_){ return {fast:null,hour:null}; }
 }
 function updateCryptoPulse(srcTag){
   const coins = Array.isArray(lastCoins)? lastCoins : [];
@@ -528,12 +591,11 @@ async function refreshPulseExtras(){
   const f = await fetchFunding();
   const fTxt = (v)=> v==null? '–' : (v>=0?'+':'')+v.toFixed(3)+'%';
   const next = f.next ? new Date(f.next) : null;
-  const srcTxt = f.src ? (' · Quelle: '+f.src) : '';
-  const sub = (next ? ('nächste: '+ new Date(next).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})) : '') + srcTxt;
+  const sub = next ? ('nächste: '+ new Date(next).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})) : '';
   const stateB = f.btc!=null? (f.btc>0.05?'red':(f.btc<-0.01?'green':null)) : null;
   const stateE = f.eth!=null? (f.eth>0.05?'red':(f.eth<-0.01?'green':null)) : null;
   setPulseTile('pulse-funding', { val: `BTC ${fTxt(f.btc)} · ETH ${fTxt(f.eth)}`, sub, state: stateB||stateE });
-// 6) Mempool fees
+  // 6) Mempool fees
   const fees = await fetchFees();
   const sub2 = fees.hour!=null? `~1h: ${fees.hour} sat/vB` : '';
   const st2 = fees.fast!=null? (fees.fast>60?'red':(fees.fast<15?'green':null)) : null;
@@ -541,23 +603,27 @@ async function refreshPulseExtras(){
 }
 
 
-async function fetchWithTimeout(url, opts = {}){
-  const t = opts.timeoutMs || 9000;
-  const retries = (opts.retries == null) ? 1 : opts.retries;
-  for(let a=0; a<=retries; a++){
-    const ctrl = new AbortController();
-    const id = setTimeout(()=>ctrl.abort(), t);
+async function fetchWithTimeout(url,opts={}){
+  const t=opts.timeoutMs||9000; const retries=(opts.retries==null)?1:opts.retries;
+  for(let a=0;a<=retries;a++){
+    const ctrl=new AbortController(); const id=setTimeout(()=>ctrl.abort(),t);
     try{
-      const res = await fetch(url, {...opts, signal: ctrl.signal});
-      clearTimeout(id);
+      const res=await fetch(url,{...opts,signal:ctrl.signal}); clearTimeout(id);
       if(!res.ok) throw new Error('HTTP '+res.status);
       return res;
-    }catch(e){
-      clearTimeout(id);
-      if(a === retries) throw e;
-      await new Promise(r => setTimeout(r, 400*(a+1)));
-    }
-  }
+    }catch(e){ clearTimeout(id); if(a===retries) throw e; await new Promise(r=>setTimeout(r,400*(a+1))); }
+
+
+// --- Fallback helpers: FX + CoinLore + Binance ---
+async function fxUSDto(ccy){
+  ccy = (ccy||'EUR').toUpperCase();
+  if(ccy === 'USD') return 1;
+  try{
+    const r = await fetchWithTimeout(`https://api.exchangerate.host/convert?from=USD&to=${encodeURIComponent(ccy)}`, {timeoutMs:8000});
+    const j = await r.json();
+    const res = (j && typeof j.result === 'number') ? j.result : 1;
+    return res || 1;
+  }catch(_){ return 1; }
 }
 
 function mapCoinLoreToList(data, n, ccy, fx){
@@ -685,7 +751,6 @@ async function loadTopCoins(){const get = (sel)=>{ try { return q ? q(sel) : doc
       }));
 
       lastCoins = list;
-      saveTopCache(list, 'COINGECKO');
       renderTopCoins(list);
       const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
       const now = nowV();
@@ -703,7 +768,6 @@ async function loadTopCoins(){const get = (sel)=>{ try { return q ? q(sel) : doc
         try{
           const list = await loadFromCoinLore(n, cur);
           lastCoins = list;
-          saveTopCache(list, 'COINLORE');
           renderTopCoins(list);
           const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
           const now = nowV();
@@ -720,7 +784,6 @@ async function loadTopCoins(){const get = (sel)=>{ try { return q ? q(sel) : doc
           try{
             const list = await loadFromBinance(n, cur);
             lastCoins = list;
-            saveTopCache(list, 'BINANCE');
             renderTopCoins(list);
             const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
             const now = nowV();
@@ -732,17 +795,7 @@ async function loadTopCoins(){const get = (sel)=>{ try { return q ? q(sel) : doc
 
           }catch(e3){
             console.error('Alle Quellen fehlgeschlagen:', e3);
-            const cache = loadTopCache();
-            if(cache && Array.isArray(cache.list) && cache.list.length){
-              lastCoins = cache.list;
-              renderTopCoins(cache.list);
-              const when = new Date(cache.ts||Date.now());
-              setText('#ts-top', `Stand: ${when.toLocaleString('de-AT',{timeZone:TZ,hour12:false})} (stale)`);
-              setHTML('#topNote', `<span class='badge stale'>Cache</span> letzte erfolgreiche Quelle: <b>${cache.src||'–'}</b> · Währung: <b>${cache.ccy||'EUR'}</b>`);
-              setText('#globalStatus', 'Hinweis: Live-Daten derzeit nicht erreichbar – zeige Cache (stale).');
-            }else{
-              setText('#globalStatus','Fehler beim Laden (alle Quellen).');
-            }
+            setText('#globalStatus','Fehler beim Laden (alle Quellen).');
           }
         }
       })();
@@ -862,94 +915,93 @@ document.addEventListener('click', (e)=>{
 
 
 
+// ==== External Markets Banner (optional) ====
+async function loadMarketsBanner(){
+  try{
+    const tryOne = async (u)=>fetch(u,{cache:'no-store'}).then(r=>r.ok?r.text():null).catch(()=>null);
+    const html = await tryOne('/banner') || await tryOne('/banner.html');
+    if(html){ const box=document.getElementById('marketsBanner'); if(box) box.innerHTML=html; }
+  }catch(_){}
+}
+document.addEventListener('DOMContentLoaded', loadMarketsBanner);
+
 // ==== Geo/Makro compact (AI) ====
 (function(){
-  const selLangKey = 'geoLang';
-  const $ = (s, r=document)=>r.querySelector(s);
-  const load = (k,d)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(_){ return d; }};
-  const store= (k,v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(_){}};
-  let GEO_LANG = load(selLangKey, 'en');
-
-  function domainOf(url){ try{ return new URL(url).hostname.replace(/^www\./,''); }catch(_){ return ''; } }
-  async function getJSONorText(res){ const txt = await res.text(); try{ return [res.ok,res.status,JSON.parse(txt)]; }catch(_){ return [res.ok,res.status,txt]; } }
+  const $=(s,r=document)=>r.querySelector(s);
+  const load=(k,d)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(_){ return d; }};
+  const store=(k,v)=>{ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(_){}};
+  let GEO_LANG = load('geoLang','en');
+  let GEO_TRANSLATE = (localStorage.getItem('geoTranslate')||'off')==='on';
 
   function bindUI(){
-    const sl = $('#geoLangSel'); if(sl){ sl.value = GEO_LANG; sl.addEventListener('change', ()=>{ GEO_LANG = sl.value; store(selLangKey, GEO_LANG); updateGeo(true); }); }
-    const rb = $('#geoReloadBtn'); if(rb){ rb.addEventListener('click', ()=> updateGeo(true)); }
+    const sel=$('#geoLangSel'); if(sel){ sel.value=GEO_LANG; sel.addEventListener('change',()=>{ GEO_LANG=sel.value; store('geoLang',GEO_LANG); updateGeo(true); }); }
+    const btn=$('#geoReloadBtn'); if(btn){ btn.addEventListener('click', ()=> updateGeo(true)); }
+    const tr=$('#geoTranslateToggle'); if(tr){ tr.checked=GEO_TRANSLATE; tr.addEventListener('change',()=>{ GEO_TRANSLATE=!!tr.checked; localStorage.setItem('geoTranslate', GEO_TRANSLATE?'on':'off'); updateGeo(true); }); }
   }
 
+  function tUrl(u){
+    try{ if(!GEO_TRANSLATE) return u;
+      const lang=(GEO_LANG==='auto'?'de':GEO_LANG); // default to de if auto
+      return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(lang)}&u=${encodeURIComponent(u)}`;
+    }catch(_){ return u; }
+  }
+
+  async function getJSONorText(res){ const txt=await res.text(); try{ return [res.ok,res.status,JSON.parse(txt)]; }catch(_){ return [res.ok,res.status,txt]; } }
+  function domainOf(url){ try{ return new URL(url).hostname.replace(/^www\./,''); }catch(_){ return ''; } }
   function renderSources(items){
-    const box = $('#geoSrcList'); if(!box) return;
-    const uniq = Array.from(new Set(items.map(it => (it.domain || domainOf(it.url))))).filter(Boolean).slice(0,6);
-    box.innerHTML = uniq.length ? 'Quellen: ' + uniq.map(d=>`<a href="https://${d}" target="_blank" rel="noopener">${d}</a>`).join(' · ') : '';
+    const box=$('#geoSrcList'); if(!box) return;
+    const uniq=Array.from(new Set(items.map(i=>i.domain||domainOf(i.url)))).filter(Boolean).slice(0,6);
+    box.innerHTML = uniq.length ? 'Quellen: ' + uniq.map(d=> `<a href="https://${d}" target="_blank" rel="noopener">${d}</a>`).join(' · ') : '';
   }
 
   async function updateGeo(force){
-    const list = $('#geoTopicsList');
-    const err  = $('#geoError');
-    const ts   = $('#ts-geo');
+    const list=$('#geoTopicsList'); const err=$('#geoError'); const ts=$('#ts-geo');
     if(!list) return;
-
-    // cache 4h
     if(!force){
       try{
-        const c = JSON.parse(localStorage.getItem('geoTopicsCacheCompact')||'null');
+        const c=JSON.parse(localStorage.getItem('geoTopicsCacheCompact')||'null');
         if(c && (Date.now()-c.ts)<(4*60*60*1000)){
-          list.innerHTML = c.html; $('#geoSrcList').innerHTML = c.srcs; ts.textContent='aus Cache'; return;
+          list.innerHTML=c.html; $('#geoSrcList').innerHTML=c.srcs; if(ts) ts.textContent='aus Cache'; return;
         }
       }catch(_){}
     }
+    if(ts) ts.textContent='lädt…'; if(err){ err.style.display='none'; err.textContent=''; }
 
-    ts.textContent = 'lädt…';
-    err.style.display='none'; err.textContent='';
-
-    // fetch feed
     let ok,s,d;
-    try{ [ok,s,d] = await getJSONorText(await fetch('/api/geo_feed',{cache:'no-store'})); }
-    catch(e){ ok=false; s=0; d=String(e); }
-    if(!ok){ err.style.display='block'; err.textContent = `Geo-Feed Fehler ${s}: ${typeof d==='string'?d:JSON.stringify(d)}`; ts.textContent='Fehler'; return; }
+    try{ [ok,s,d] = await getJSONorText(await fetch('/api/geo_feed',{cache:'no-store'})); }catch(e){ ok=false; s=0; d=String(e); }
+    if(!ok){ if(err){ err.style.display='block'; err.textContent=`Geo-Feed Fehler ${s}: ${typeof d==='string'?d:JSON.stringify(d)}`; } if(ts) ts.textContent='Fehler'; return; }
 
     const items = Array.isArray(d.items)? d.items.slice(0,8) : [];
-    if(!items.length){ list.innerHTML=''; ts.textContent='n.v.'; return; }
+    if(!items.length){ list.innerHTML=''; if(ts) ts.textContent='n.v.'; return; }
 
-    // summarize
-    let bullets = [];
+    let bullets=[];
     try{
-      const [ok2, s2, d2] = await getJSONorText(await fetch('/api/summary', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ titles: items.slice(0,4).map(i=>i.title||i.domain||'Source'), lang: GEO_LANG })
-      }));
-      if(!ok2){
-        err.style.display='block'; err.textContent = `Summary Fehler ${s2}: ${typeof d2==='string'?d2:JSON.stringify(d2)}`;
-        bullets = items.map(i => String(i.title||'').trim()).map(t => t.length>100 ? t.slice(0,97)+'…' : t);
-      }else{
-        bullets = Array.isArray(d2.bullets) ? d2.bullets : [];
-      }
-    }catch(e){
-      bullets = items.map(i => String(i.title||'').trim()).map(t => t.length>100 ? t.slice(0,97)+'…' : t);
+      const [ok2,s2,d2] = await getJSONorText(await fetch('/api/summary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({titles:items.slice(0,4).map(i=>i.title||i.domain||'Source'),lang:GEO_LANG})}));
+      if(ok2 && Array.isArray(d2.bullets)) bullets = d2.bullets;
+      else bullets = items.map(i=> String(i.title||'').trim()).map(t=> t.length>100 ? t.slice(0,97)+'…' : t);
+    }catch(_){
+      bullets = items.map(i=> String(i.title||'').trim()).map(t=> t.length>100 ? t.slice(0,97)+'…' : t);
     }
 
-    // render list
-    list.innerHTML = '';
-    const n = Math.min(4, items.length, bullets.length);
+    list.innerHTML='';
+    const n=Math.min(4, items.length, bullets.length);
     for(let i=0;i<n;i++){
-      const it = items[i];
-      const b  = String(bullets[i]||'').replace(/^[-•\s]+/,'').trim();
-      const li = document.createElement('li');
-      const a  = document.createElement('a'); a.href = it.url; a.target='_blank'; a.rel='noopener';
-      const dmn = it.domain || domainOf(it.url);
+      const it=items[i]; const b=String(bullets[i]||'').replace(/^[-•\\s]+/,'').trim();
+      const li=document.createElement('li');
+      const a=document.createElement('a'); a.href=tUrl(it.url); a.target='_blank'; a.rel='noopener';
+      const dmn= it.domain || domainOf(it.url);
       a.textContent = `${dmn} – ${(it.title||'').slice(0,120)}`;
       li.textContent = `• ${b} (`; li.appendChild(a); li.appendChild(document.createTextNode(')'));
       list.appendChild(li);
     }
     renderSources(items);
-    ts.textContent = 'aktualisiert';
-
-    // cache rendered
-    try{ localStorage.setItem('geoTopicsCacheCompact', JSON.stringify({ ts: Date.now(), html: list.innerHTML, srcs: $('#geoSrcList').innerHTML })); }catch(_){}
+    if(ts) ts.textContent='aktualisiert';
+    try{ localStorage.setItem('geoTopicsCacheCompact', JSON.stringify({ts:Date.now(), html:list.innerHTML, srcs: $('#geoSrcList').innerHTML})); }catch(_){}
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{ bindUI(); updateGeo(true); });
+  // refresh every 4h
+  setInterval(()=>updateGeo(true), 4*60*60*1000);
 })();
 
 // ========= Szenario =========
@@ -1014,7 +1066,7 @@ function populateSettings(){
   qa('input[name="count"]').forEach(r=>r.checked=(parseInt(r.value,10)===COUNT));
   qa('input[name="range"]').forEach(r=>r.checked=(parseInt(r.value,10)===RANGE));
   qa('input[name="theme"]').forEach(r=>r.checked=(r.value===THEME));
-  q('#trendBgToggle').checked=TREND_BG; q('#dyorToggle').checked=SHOW_DYOR; q('#buzzToggle').checked=SHOW_BUZZ; q('#showExchToggle').checked=SHOW_EXCH;
+  q('#trendBgToggle').checked=TREND_BG; q('#dyorToggle').checked=SHOW_DYOR; q('#buzzToggle').checked=SHOW_BUZZ; /* showExch removed */
   q('#autoReloadToggleSettings').checked=AUTO_RELOAD; qa('input[name="ar"]').forEach(r=>r.checked=(parseInt(r.value,10)===AUTO_MIN));
 }
 function openSettings(){ populateSettings(); const m=q('#settingsModal'); m.setAttribute('open',''); m.removeAttribute('aria-hidden'); }
@@ -1028,7 +1080,7 @@ function onSettingsSubmit(e){
   TREND_BG=!!q('#trendBgToggle').checked; localStorage.setItem('trendBg',TREND_BG?'on':'off');
   SHOW_DYOR=!!q('#dyorToggle').checked; localStorage.setItem('showDyor',SHOW_DYOR?'on':'off');
   SHOW_BUZZ=!!q('#buzzToggle').checked; localStorage.setItem('showBuzz',SHOW_BUZZ?'on':'off');
-  SHOW_EXCH=!!q('#showExchToggle').checked; localStorage.setItem('showExch',SHOW_EXCH?'on':'off');
+  /* showExch removed */ localStorage.setItem('showExch',SHOW_EXCH?'on':'off');
   const auto=q('#autoReloadToggleSettings'); setAutoReload(!!auto.checked);
   const iv=q('input[name="ar"]:checked'); AUTO_MIN=parseInt(iv?iv.value:'15',10)||15; localStorage.setItem('autoMin',String(AUTO_MIN)); updateAutoLabel();
   closeSettings(); applyTheme(); applyTrendBg(); applyShowExch(); layoutPad(); boot();
@@ -1050,6 +1102,8 @@ async function boot(){
 // ========= Events =========
 window.addEventListener('resize', layoutPad);
 document.addEventListener('DOMContentLoaded', layoutPad);
+applyGeoLangUI();
+const geoBtn=q('#geoReloadBtn'); if(geoBtn){ geoBtn.addEventListener('click', ()=>updateGeoTopics(true)); }
 
 q('#refreshBtn').addEventListener('click', ()=>{ if(AUTO_RELOAD){ nextReloadAt=Date.now()+AUTO_MIN*60*1000; } boot(); });
 q('#openSettingsBtn').addEventListener('click', openSettings);
@@ -1090,6 +1144,84 @@ boot();
     <div id="overlayContent"></div>
   </div>
 </div>
+<script>
+// --- robuster Loader für KI-Themen (zeigt Fehler textlich an) ---
+async function geoFetchJSON(url, opt){ 
+  const r = await fetch(url, opt);
+  // auch Fehlerseiten als Text lesen und sinnvoll behandeln
+  const txt = await r.text();
+  try { return { ok:r.ok, status:r.status, json: JSON.parse(txt) }; }
+  catch { return { ok:r.ok, status:r.status, text: txt }; }
+}
+
+function geoRender(items, bullets){
+  const list = document.querySelector('#geoTopicsList');
+  const status = document.querySelector('#geoFeedStatus');
+  const errBox = document.querySelector('#geoError');
+  list.innerHTML = '';
+  errBox.style.display = 'none'; errBox.textContent = '';
+  const n = Math.min(4, items.length, bullets.length);
+  for(let i=0;i<n;i++){
+    const it = items[i]; const b = (bullets[i]||'').replace(/^[-•\s]+/, '').trim();
+    const li = document.createElement('li');
+    const a = document.createElement('a'); a.href = it.url; a.target = '_blank'; a.rel = 'noopener';
+    const domain = it.domain || new URL(it.url).hostname.replace(/^www\./,'');
+    a.textContent = `${domain} – ${(it.title||'').slice(0,120)}`;
+    li.textContent = `. Thema #${i+1} ${b} (`; li.appendChild(a); li.appendChild(document.createTextNode(')'));
+    list.appendChild(li);
+  }
+  status.textContent = n ? 'aktualisiert' : 'n.v.';
+}
+
+async function loadGeoCompact(force=false){
+  const status = document.querySelector('#geoFeedStatus');
+  const errBox = document.querySelector('#geoError');
+  status.textContent = 'lädt…'; errBox.style.display = 'none'; errBox.textContent = '';
+
+  // 1) Quellen holen
+  const feed = await geoFetchJSON('/api/geo_feed');
+  if(!feed.ok){
+    errBox.style.display = 'block';
+    errBox.textContent = `Geo-Feed Fehler ${feed.status}: ` + (feed.json?.error ? JSON.stringify(feed.json.error) : (feed.text||'keine Details'));
+    status.textContent = 'Fehler';
+    return;
+  }
+  const items = Array.isArray(feed.json.items) ? feed.json.items.slice(0,8) : [];
+
+  // 2) Bullets holen (POST)
+  let bullets = [];
+  if(items.length){
+    const titles = items.map(it=> it.title || it.domain || 'Quelle');
+    const res = await geoFetchJSON('/api/summary', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ titles })
+    });
+    if(!res.ok){
+      // lesbar anzeigen (Gateway/Key/Model-Fehler etc.)
+      errBox.style.display = 'block';
+      errBox.textContent = `Summary Fehler ${res.status}: ` + (res.json?.error ? JSON.stringify(res.json.error) : (res.text||'keine Details'));
+      // Fallback: sehr kurze Titel verwenden, damit trotzdem etwas erscheint
+      bullets = titles.map(t => t.length>90 ? t.slice(0,87)+'…' : t);
+    }else{
+      bullets = Array.isArray(res.json.bullets) ? res.json.bullets.slice(0, items.length) : [];
+    }
+  }
+
+  // 3) Rendern / Fallback
+  if(!bullets.length && items.length){
+    bullets = items.map(it => (it.title||'').trim()).map(t=> t.length>90? t.slice(0,87)+'…':t);
+  }
+  geoRender(items, bullets);
+}
+
+// Button & Timer
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btn = document.querySelector('#geoReloadBtn');
+  if(btn) btn.addEventListener('click', ()=> loadGeoCompact(true));
+  loadGeoCompact(true);
+  setInterval(()=>loadGeoCompact(true), 4*60*60*1000);
+});
+</script>
 
 </body>
 </html>
