@@ -1,20 +1,28 @@
+# Crypto Pulse – Vercel Starter
 
-# OneSide – Python Full Setup
+Quell-HTML: OneSide.html
 
-This project moves *all* dynamic pieces to Python serverless functions.
+## Quick Deploy (ohne CLI)
+1. Repo bei GitHub/GitLab/Bitbucket erstellen und diesen Ordner hochladen.
+2. Auf vercel.com -> **Add New... → Project** -> Repo wählen -> Deploy.
+3. Seite läuft unter `https://<projekt>.vercel.app`.
+4. APIs erreichbar unter `/api/funding` und `/api/fees`.
 
-## API Endpoints
-- `GET /api/top_coins?vs=EUR&limit=10` – top coins (CG → CoinLore → Binance + FX)
-- `GET /api/metrics` – BTC dominance, ETH/BTC, funding (BTC/ETH), Fear & Greed, mempool fees
-- `GET /api/geo_feed` – English finance/crypto headlines
-- `POST /api/summary` – compact EN/DE bullets
+## Deploy mit CLI (wenn du kein Git nutzt)
+```bash
+npm i -g vercel
+vercel login
+vercel           # Preview-Deploy
+vercel --prod    # Live-Deploy
+```
 
-## Deploy
-1. Put `api/` and `index.html` at the project root.
-2. Vercel → Project → Settings → **Environment Variables**: `OPENAI_API_KEY` *or* `AI_GATEWAY_API_KEY`.
-3. (Optional) `AI_API_URL`, `AI_MODEL`, `AI_AUTH_HEADER`, `AI_AUTH_VALUE`.
-4. Push → enjoy.
+## Optional: CORS enger setzen
+Im Vercel-Projekt unter *Settings → Environment Variables*:
+- `ALLOWED_ORIGINS` = `https://<deine-domain>.vercel.app, https://<custom-domain.tld>`
 
-## Notes
-- Trend colors are handled on the client, data from Python.
-- Translator toggle re-writes external links through Google Translate if enabled.
+## Dateien
+- `index.html` – fertige Onefile-Seite
+- `api/funding.py` – Binance Funding (BTC/ETH)
+- `api/fees.py` – BTC Mempool Fees
+- `vercel.json` – Clean URLs
+- `requirements.txt` – leer (keine Abhängigkeiten notwendig)
