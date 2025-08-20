@@ -415,7 +415,21 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
           </div>
         </fieldset>
       
-        
+        <fieldset>
+          <legend>Übersetzer</legend>
+          <label class="switch"><input type="checkbox" id="transGlobalToggle"><span>Globaler Webseiten‑Übersetzer</span></label>
+          <div class="small" style="margin-top:8px">Zielsprache</div>
+          <div class="seg">
+            <input type="radio" id="tr_en" name="trlang" value="en"><label for="tr_en">EN</label>
+            <input type="radio" id="tr_de" name="trlang" value="de"><label for="tr_de">DE</label>
+            <input type="radio" id="tr_es" name="trlang" value="es"><label for="tr_es">ES</label>
+            <input type="radio" id="tr_fr" name="trlang" value="fr"><label for="tr_fr">FR</label>
+            <input type="radio" id="tr_it" name="trlang" value="it"><label for="tr_it">IT</label>
+            <input type="radio" id="tr_pl" name="trlang" value="pl"><label for="tr_pl">PL</label>
+            <input type="radio" id="tr_ru" name="trlang" value="ru"><label for="tr_ru">RU</label>
+          </div>
+          <div class="hint small">Ohne KI‑API: Google‑Translate‑Proxy. Für KI‑Übersetzung kann später ein eigener Endpoint hinterlegt werden.</div>
+        </fieldset>
     </div>
       <div class="actions">
         <button type="button" class="btn" id="cancelSettingsBtn">Abbrechen</button>
@@ -1018,41 +1032,6 @@ function onSettingsSubmit(e){
   closeSettings(); applyTheme(); applyTrendBg(); applyShowExch(); layoutPad(); boot();
 }
 
-
-// ========= Trending & FGI (added safely) =========
-async function loadTrending(){
-  try{
-    const r = await fetchWithTimeout('https://api.coingecko.com/api/v3/search/trending', { timeoutMs: 9000 });
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const j = await r.json();
-    const coins = (j && Array.isArray(j.coins)) ? j.coins.map(x=>x.item) : [];
-    window._trending = coins;
-    const lab = coins.slice(0,3).map(c=>String(c.symbol||c.name||'').toUpperCase()).join(' · ');
-    const el = document.getElementById('pulseStatus');
-    if(el) el.textContent = lab ? ('Trending: '+lab) : 'Trending geladen';
-  }catch(e){
-    console.warn('loadTrending failed', e);
-  }
-}
-
-async function loadFGI(){
-  try{
-    const r = await fetchWithTimeout('https://api.alternative.me/fng/?limit=1', { timeoutMs: 9000 });
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const j = await r.json();
-    const d = (j && j.data && j.data[0]) ? j.data[0] : null;
-    if(!d){ throw new Error('No data'); }
-    const v = Number(d.value); const cls = String(d.value_classification||'').toUpperCase();
-    const ts = d.timestamp ? new Date(Number(d.timestamp)*1000) : new Date();
-    setText('#fgiGauge', `FGI: ${isFinite(v)?v:'–'} (${cls||'–'})`);
-    setText('#ts-fgi', 'Stand: '+ ts.toLocaleString('de-AT',{timeZone:TZ,hour12:false}));
-    const t = document.getElementById('fgiText'); if(t) t.textContent = 'Quelle: alternative.me';
-  }catch(e){
-    console.warn('loadFGI failed', e);
-    const wrap = document.getElementById('fgiImgWrap'); if(wrap) wrap.style.display = 'block';
-    const t = document.getElementById('fgiText'); if(t) t.textContent = 'FGI Bild-Fallback aktiviert.';
-  }
-}
 // ========= Boot =========
 async function boot(){
   
@@ -1117,7 +1096,13 @@ function wrapTranslate(u){
   if(BACKEND_ON){ return u; } // with backend we translate page text on-demand, keep original URL
   const tl = (TRANS_LANG||'en').toLowerCase();
   return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(tl)}&u=${encodeURIComponent(u)}`;
+}catch(_){ return u; }
+  if(!TRANS_ON) return u;
+  const tl = (TRANS_LANG||'en').toLowerCase();
+  // Use Google Translate web proxy
+  return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(tl)}&u=${encodeURIComponent(u)}`;
 }
+
 async function loadGeoCompact(force){
   const err = document.getElementById('geoError');
   const list = document.getElementById('geoTopicsList');
