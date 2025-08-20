@@ -427,6 +427,17 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 
 <script>
 // ========= Utilities / State =========
+
+// === UI Helper Shims (safe, no logic change) ===
+if (typeof window.qs !== 'function') { window.qs = function(s, el){ return Array.from((el||document).querySelectorAll(s)); }; }
+if (typeof window.setText !== 'function') { window.setText = function(sel, txt){ const el=document.querySelector(sel); if(el) el.textContent = (txt==null?'':String(txt)); }; }
+if (typeof window.setHTML !== 'function') { window.setHTML = function(sel, html){ const el=document.querySelector(sel); if(el) el.innerHTML = (html==null?'':String(html)); }; }
+if (typeof window.doFetch !== 'function') { window.doFetch = async function(url, opts={}){ const r = await fetchWithTimeout(url, opts); try { return await r.json(); } catch(_) { return null; } }; }
+// Provide global fallbacks for n/cur in catch/fallback branches
+if (typeof window.n === 'undefined') { try{ window.n = (typeof COUNT!=='undefined'? COUNT : 10); }catch(_){ window.n = 10; } }
+if (typeof window.cur === 'undefined') { try{ window.cur = (typeof CURRENCY!=='undefined'? CURRENCY : 'EUR'); }catch(_){ window.cur = 'EUR'; } }
+
+
 const TZ='Europe/Vienna';
 const STABLE_IDS=new Set(['tether','usd-coin','binance-usd','dai','true-usd','frax','pax-dollar','usdd','first-digital-usd','fdusd','lusd','usde','gusd','usdp','paypal-usd']);
 function q(s,el){return (el||document).querySelector(s)}; function qa(s,el){return Array.from((el||document).querySelectorAll(s));}
