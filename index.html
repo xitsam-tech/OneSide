@@ -1,0 +1,1440 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Krypto Marktübersicht – Onefile</title>
+<style>
+
+/* ===== Design tokens ===== */
+:root{
+  --header-extra:14px;
+  --bg:#0b0f16; --panel:#0f1726; --card:#0c1320; --border:#1f2a3d; --text:#e8edf4; --muted:#9aa3b2;
+  --accent:#60a5fa; --green:#22c55e; --red:#ef4444; --amber:#f59e0b;
+  --gap:12px; --spark-h:42px; --spark-compact-h:32px;
+  --header-h:72px;
+  --radius-lg:14px; --radius-md:12px; --radius-sm:10px;
+  --shadow-elev:0 10px 30px rgba(2,6,23,.45);
+  --shadow-soft:0 6px 18px rgba(2,6,23,.30);
+  --ring:#93c5fd;
+}
+:root[data-theme="light"]{
+  --bg:#f6f8fc; --panel:#ffffff; --card:#ffffff; --border:#e6eaf0; --text:#0f172a; --muted:#64748b;
+  --accent:#2563eb; --green:#16a34a; --red:#dc2626; --amber:#b45309;
+  --shadow-elev:0 10px 30px rgba(0,0,0,.08);
+  --shadow-soft:0 6px 18px rgba(0,0,0,.06);
+  --ring:#2563eb;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1400px;margin:0 auto;padding:16px}
+main{padding-top:calc(var(--header-h) + var(--header-extra));}
+
+/* ===== Topbar ===== */
+.topbar{position:fixed;top:0;left:0;right:0;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0));
+  border-bottom:1px solid var(--border);z-index:9999;box-shadow:0 8px 20px rgba(0,0,0,.25);backdrop-filter:blur(10px)}
+:root[data-theme="light"] .topbar{box-shadow:0 8px 20px rgba(0,0,0,.08)}
+.head-row{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.title{font-weight:800;letter-spacing:.2px}
+.meta{color:var(--muted);font-size:.92rem}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Buttons / Pills */
+.btn{display:inline-flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--border);
+  color:var(--text);padding:10px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:transform .12s ease, box-shadow .12s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-soft)}
+.btn:active{transform:translateY(0);box-shadow:none}
+.pill{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);
+  padding:6px 10px;border-radius:999px}
+.badge{display:inline-block;border:1px solid var(--border);padding:2px 8px;border-radius:999px;font-size:.75rem;color:var(--muted);background:var(--card)}
+
+/* Sections */
+.section{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;margin-top:16px;box-shadow:var(--shadow-soft)}
+.section h2{margin:0 0 8px 0;font-size:1rem}
+.hint{color:var(--muted);font-size:.9rem}
+.small{font-size:.82rem}
+.ok{color:var(--green)} .error{color:var(--red)}
+
+/* Grid of cards */
+.kacheln{display:grid;gap:var(--gap)}
+@media(min-width:1200px){ .kacheln{grid-template-columns:repeat(5, minmax(0,1fr));} }
+@media(max-width:1199.98px){ .kacheln{grid-template-columns:repeat(auto-fit,minmax(290px,1fr));} }
+
+/* Coin card */
+.coin{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;display:flex;flex-direction:column;gap:8px;
+  box-shadow:var(--shadow-soft);transition:transform .14s ease, box-shadow .14s ease, background-color .2s ease}
+.coin:hover{transform:translateY(-2px);box-shadow:var(--shadow-elev)}
+.coin header{display:flex;justify-content:flex-start;align-items:center;gap:10px}
+.hdr-right{display:flex;gap:6px;align-items:center;white-space:nowrap;max-width:60%;overflow:hidden;text-overflow:ellipsis}
+.sym{font-weight:800;letter-spacing:.2px}
+.muted{color:var(--muted)}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:2px 0;border-top:1px dashed rgba(148,163,184,.18)}
+.row:first-of-type{border-top:0}
+canvas.spark{width:100%;height:var(--spark-h);background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));border-radius:6px}
+:root[data-theme="light"] canvas.spark{background:linear-gradient(180deg,#f3f6fb,#f7f9fc)}
+canvas.spark.compact{height:var(--spark-compact-h)}
+.coin.compact{padding:10px}
+.badge-buzz{border:1px solid var(--accent);background:rgba(96,165,250,.12);color:var(--accent);padding:2px 6px;border-radius:999px;font-size:.72rem}
+
+/* Tables */ 
+.table-wrap{overflow-x:auto}
+.table{width:100%;border-collapse:collapse;table-layout:fixed}
+.table th,.table td{padding:10px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.table th{color:var(--muted);font-weight:700}
+.table td.col-reason{white-space:normal}
+.col-bear{color:var(--red);font-weight:700}
+.col-base{color:var(--amber);font-weight:700}
+.col-bull{color:var(--green);font-weight:700}
+.emph{border-radius:6px;padding:2px 6px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+
+/* Disclaimer */
+.disclaimer{margin-top:6px;padding:10px;border:1px dashed var(--amber);border-radius:8px;color:var(--amber);
+  background:linear-gradient(180deg,rgba(245,158,11,.10),rgba(245,158,11,.06));font-size:.88rem}
+
+/* Details */
+details.geo{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px}
+details.geo summary{cursor:pointer}
+
+/* Modal */
+.modal-backdrop{position:fixed;inset:0;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,.55);z-index:10000}
+.modal-backdrop[open]{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:18px;width:min(840px,92vw);max-height:92vh;overflow:auto;padding:16px;margin-top:6vh;box-shadow:var(--shadow-elev)}
+.modal header{display:flex;justify-content:space-between;align-items:center}
+fieldset{border:1px solid var(--border);border-radius:12px;background:var(--card);padding:12px}
+legend{padding:0 8px;color:var(--muted);font-size:.85rem}
+.form-grid{display:grid;gap:14px}
+@media(min-width:768px){ .form-grid{grid-template-columns:1fr 1fr} }
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.seg input{display:none}
+.seg label{border:1px solid var(--border);border-radius:999px;padding:6px 10px;cursor:pointer;transition:background-color .12s ease, color .12s ease, transform .12s ease}
+.seg input:checked + label{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg label:hover{transform:translateY(-1px)}
+.switch{display:inline-flex;align-items:center;gap:8px}
+.switch input{appearance:none;width:42px;height:24px;border-radius:999px;background:var(--border);position:relative;cursor:pointer;outline:none}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+.switch input:checked{background:var(--accent)}
+.switch input:checked::after{left:21px}
+.modal .actions{position:sticky;bottom:0;background:linear-gradient(180deg,transparent,var(--panel));padding-top:10px;display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+
+/* Legal footer */
+.legal-foot{background:var(--panel);border-top:1px solid var(--border);margin-top:16px}
+.legal-foot .wrap{padding-block:16px}
+.legal-foot .row{display:flex;flex-direction:column;gap:6px}
+.legal-foot .small{font-size:.82rem;color:var(--muted)}
+.legal-foot a{color:var(--accent);text-decoration:none}
+.legal-foot a:hover{text-decoration:underline}
+
+/* legacy body pad */
+body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
+
+/* === Toggle feedback (visible ON/OFF) === */
+:root{--chip-on-bg:#16a34a;--chip-on-fg:#03140a;--chip-off-bg:#334155;--chip-off-fg:#cbd5e1;--switch-on:#2563eb;--switch-off:#1f2937}
+.switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.switch input{width:46px;height:26px;appearance:none;border-radius:999px;background:var(--switch-off);position:relative;outline:0;border:1px solid #0f172a}
+.switch input::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left .18s ease}
+.switch input:checked{background:var(--switch-on)}
+.switch input:checked::after{left:23px}
+.switch input + span::after{content:'AUS';display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--chip-off-bg);color:var(--chip-off-fg);font-size:.72rem}
+.switch input:checked + span::after{content:'AN';background:var(--chip-on-bg);color:var(--chip-on-fg)}
+
+/* Positive/Negative coloring */
+.pos{ color: var(--green); font-weight:700 }
+.neg{ color: var(--red);   font-weight:700 }
+
+/* Mobile overlay for coin details */
+.overlay{ position:fixed; inset:0; background:rgba(2,6,23,.65); display:none; z-index:9999 }
+.overlay.open{ display:grid; place-items:center }
+.overlay-card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; width:min(640px,92vw); max-height:90vh; overflow:auto; padding:16px; box-shadow:var(--shadow-elev) }
+.overlay-card .close{ position:sticky; top:0; margin-left:auto; font-size:20px; line-height:20px; padding:6px 12px; border-radius:10px; background:var(--card); border:1px solid var(--border) }
+
+/* Mobile compact cards */
+@media (max-width: 640px){
+  .coin{ cursor:pointer; padding:10px }
+  .coin header .muted.small{ display:none } /* hide long name */
+  .coin .spark{ display:none !important }
+  .coin .row{ display:none }
+  .coin .row.price{ display:flex } /* only price visible */
+}
+
+/* inline price in header */
+.coin header{ align-items:center; }
+.price-inline{ font-weight:800; margin-left:auto; }
+
+/* === Crypto-Pulse tiles === */
+.pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.pulse-grid .tile{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px;box-shadow:var(--shadow-soft)}
+.pulse-grid .klabel{font-size:12px;color:var(--muted)}
+.pulse-grid .kval{font-size:22px;font-weight:800;margin-top:2px;letter-spacing:.2px}
+.pulse-grid .ksub{font-size:12px;color:var(--muted);margin-top:2px}
+.pulse-grid .red .kval{color:#ef4444}
+.pulse-grid .green .kval{color:#22c55e}
+.pulse-grid .yellow .kval{color:#eab308}
+.stale{border-color:var(--amber);color:var(--amber)}
+
+/* Trendfarben – Karten per Toggle (clean, isolated) */
+.trend-on .coin.trend-up   { background: rgba(34,197,94,.08) !important;  border-color: rgba(34,197,94,.25) !important; }
+.trend-on .coin.trend-mid  { background: rgba(245,158,11,.08) !important; border-color: rgba(245,158,11,.25) !important; }
+.trend-on .coin.trend-down { background: rgba(239,68,68,.08) !important;  border-color: rgba(239,68,68,.25) !important; }
+
+/* ===== A11y focus rings ===== */
+:where(button, [role="button"], .btn, .seg label, a, input, textarea, summary):focus-visible{
+  outline:2px solid var(--ring);
+  outline-offset:2px;
+  box-shadow:0 0 0 4px color-mix(in oklab, var(--ring) 20%, transparent);
+  border-radius:10px;
+}
+
+/* ===== Smooth transitions & reduced motion ===== */
+*{transition:background-color .18s ease,color .18s ease, border-color .18s ease}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important}
+  .btn, .coin{transition:none !important}
+}
+
+/* ===== Print ===== */
+@media print{
+  .topbar, .modal-backdrop, .overlay, #settingsModal{display:none !important}
+  .wrap{max-width:none}
+  .coin{break-inside:avoid}
+}
+
+</style>
+
+<style>
+/* Trendfarben – Karten per Toggle (clean, isolated) */
+.trend-on .coin.trend-up   { background: rgba(34,197,94,.08) !important;  border-color: rgba(34,197,94,.25) !important; }
+.trend-on .coin.trend-mid  { background: rgba(245,158,11,.08) !important; border-color: rgba(245,158,11,.25) !important; }
+.trend-on .coin.trend-down { background: rgba(239,68,68,.08) !important;  border-color: rgba(239,68,68,.25) !important; }
+</style>
+
+</head>
+<body>
+<header class="topbar" role="banner">
+  <div class="wrap head-row">
+    <div>
+      <div class="title">Krypto Marktübersicht (Top‑<span id="hdrCount">5</span> · ohne Stablecoins)</div>
+      <div class="meta" id="meta-time">Lade …</div>
+    </div>
+    <div class="toolbar" role="toolbar" aria-label="Aktionen">
+      <label class="pill"><input type="checkbox" id="autoReloadToggle" aria-label="Auto-Reload umschalten"> <span id="autoLbl">Auto 15 min</span> <span id="autoCountdown" class="badge">–:–</span></label>
+      <button class="btn" id="refreshBtn" aria-label="Neu laden">↻ Neu laden</button>
+      <button class="btn" id="openSettingsBtn" aria-haspopup="dialog" aria-controls="settingsModal" aria-label="Einstellungen öffnen">⚙️ Einstellungen</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hint small" id="globalStatus" aria-live="polite">Initialisiere…</div>
+
+  <section class="section">
+    <h2><span id="topNLabel">Top‑5 Coins</span> <span class="badge" id="ts-top">–</span></h2>
+    <div id="coinGrid" class="kacheln"></div>
+    <div id="topNote" class="hint small"></div>
+  </section>
+  <section id="crypto-pulse" class="card" style="margin-top:12px">
+    <header class="row between center">
+      <div class="title">Krypto‑Pulse (kompakt)</div>
+      <div class="small muted" id="pulseStatus">lädt…</div>
+    </header>
+    <div id="pulseGrid" class="grid pulse-grid">
+      <div class="tile" id="pulse-btcdom"><div class="klabel">BTC‑Dominanz</div><div class="kval">–</div><div class="ksub"></div></div>
+      <div class="tile" id="pulse-ethbtc"><div class="klabel">ETH/BTC</div><div class="kval">–</div><div class="ksub"></div></div>
+      <div class="tile" id="pulse-stables"><div class="klabel">Stable‑Power</div><div class="kval">–</div><div class="ksub"></div></div>
+      <div class="tile" id="pulse-funding"><div class="klabel">Funding BTC/ETH</div><div class="kval">–</div><div class="ksub"></div></div>
+      <div class="tile" id="pulse-breadth"><div class="klabel">Breadth 7d</div><div class="kval">–</div><div class="ksub"></div></div>
+      <div class="tile" id="pulse-mempool"><div class="klabel">BTC Fees</div><div class="kval">–</div><div class="ksub"></div></div>
+    </div>
+  </section>
+
+
+  <!-- Fear & Greed -->
+  <section class="section" aria-labelledby="h-fgi">
+    <h2 id="h-fgi">Fear & Greed Index <span class="badge" id="ts-fgi">–</span></h2>
+    <div id="fgiBox" class="grid cols-2" style="align-items:center">
+      <div>
+        <div id="fgiGauge" class="title" aria-live="polite">Lade FGI…</div>
+        <div class="hint small" id="fgiText"></div>
+      </div>
+      <div id="fgiImgWrap" style="display:none">
+        <img src="https://alternative.me/crypto/fear-and-greed-index.png" alt="FGI Bild Fallback" style="max-width:100%;border:1px solid var(--border);border-radius:8px"/>
+      </div>
+    </div>
+  </section>
+
+<!-- Geopolitik & Makro -->
+
+  <section class="section" aria-labelledby="h-geo">
+    <h2 id="h-geo">Geopolitik &amp; Makro (kompakt) <span class="badge" id="geoFeedStatus">–</span></h2>
+    <div class="toolbar" style="gap:8px;margin-bottom:6px">
+      <button class="btn" id="geoReload">↻ Neu laden</button>
+      <label class="pill">Sprache&nbsp;
+        <select id="geoLang" style="background:var(--card);color:var(--text);border:0">
+          <option value="EN" selected>EN</option>
+          <option value="DE">DE</option>
+        </select>
+      </label>
+      <label class="switch"><input type="checkbox" id="geoTranslateToggle"><span>Quellen via Übersetzer öffnen</span></label>
+    </div>
+    <ul class="bullets" id="geoTopicsList" aria-live="polite"></ul>
+    <div id="geoError" class="small error" style="display:none"></div>
+  </section>
+
+
+  <!-- Szenarien -->
+  <section class="section" aria-labelledby="h-scen">
+    <h2 id="h-scen">Szenario-Modul (Bull/Base/Bear) <span class="badge" id="ts-scen">–</span></h2>
+    <div class="hint small">Automatisch aus Trend/Momentum/Volumen abgeleitet. Farblegende: <span class="neg">Down = rot</span> · <span class="muted" style="color:var(--amber)">Middle = orange</span> · <span class="pos">Up = grün</span>. Keine Anlageberatung.</div>
+    <div class="table-wrap">
+      <table class="table scen" id="scenTable" aria-label="Szenario Tabelle">
+        <colgroup>
+          <col style="width:96px" />
+          <col style="width:72px" />
+          <col style="width:72px" />
+          <col style="width:72px" />
+          <col class="reason" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Coin</th>
+            <th>Bull</th>
+            <th>Base</th>
+            <th>Bear</th>
+            <th class="col-reason">Begründung (kurz)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="disclaimer" role="note">
+      Hinweis & Haftungsausschluss: Dies ist <strong>keine Anlageberatung</strong>. Wahrscheinlichkeiten sind grobe Bandbreiten (z. B. 25/50/25) auf Basis öffentlicher Marktdaten (7-Tage-Sparkline, 24h/7d-Änderung, Volumen). Eigene Recherche bleibt unerlässlich.
+    </div>
+  </section>
+
+  <section class="section" id="exchangesSection">
+    <h2>Börsen (Accounts & Verbindungen)</h2>
+    <div id="exchList" class="kacheln" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div>
+    <div class="hint small">Ref‑Links lokal gespeichert. API‑Verbindungen folgen später.</div>
+  </section>
+
+  <!-- Chart‑Playground (leichtgewichtig) -->
+  <section class="section" id="chartLab">
+    <h2>Chart‑Playground (Beta)</h2>
+    <div class="toolbar" role="group" aria-label="Chart Controls">
+      <input type="text" id="chartSymbol" placeholder="BTC" class="pill" style="padding:8px 12px" />
+      <select id="chartDays" class="pill" aria-label="Zeitraum">
+        <option value="7">7d</option>
+        <option value="30" selected>30d</option>
+        <option value="90">90d</option>
+        <option value="180">180d</option>
+        <option value="365">365d</option>
+      </select>
+      <button class="btn" id="chartLoadBtn">Daten laden</button>
+      <button class="btn" id="chartFibBtn">Fib Retracement</button>
+      <button class="btn" id="chartElliottBtn">Elliott (naiv)</button>
+      <span class="small muted" id="chartStatus"></span>
+    </div>
+    <canvas id="chartCanvas" height="300" style="width:100%;border:1px solid var(--border);border-radius:10px;background:var(--card)"></canvas>
+    <div class="toolbar" style="margin-top:8px">
+      <button class="btn" id="chartAIAnalyzeBtn">KI‑Analyse (Server)</button>
+      <span class="small muted" id="chartAIStatus"></span>
+    </div>
+    <div class="hint small">Hinweis: Datenquelle CoinGecko. Elliott‑Erkennung ist ein einfacher Prototyp (ZigZag‑Heuristik).</div>
+  </section>
+
+</main>
+
+<!-- Einstellungen -->
+<div class="modal-backdrop" id="settingsModal" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <header><h3 id="settingsTitle">Einstellungen</h3><button class="btn" id="closeSettingsBtn">✕</button></header>
+    <form id="settingsForm">
+      <div class="form-grid">
+        <fieldset>
+          <legend>Allgemein</legend>
+          <div class="small">Währung</div>
+          <div class="seg">
+            <input type="radio" id="ccy_eur" name="ccy" value="EUR"><label for="ccy_eur">EUR</label>
+            <input type="radio" id="ccy_usd" name="ccy" value="USD"><label for="ccy_usd">USD</label>
+            <input type="radio" id="ccy_gbp" name="ccy" value="GBP"><label for="ccy_gbp">GBP</label>
+            <input type="radio" id="ccy_jpy" name="ccy" value="JPY"><label for="ccy_jpy">JPY</label>
+          </div>
+          <div class="small" style="margin-top:8px">Anzahl Coins</div>
+          <div class="seg">
+            <input type="radio" id="cnt_5" name="count" value="5"><label for="cnt_5">Top‑5</label>
+            <input type="radio" id="cnt_10" name="count" value="10"><label for="cnt_10">Top‑10</label>
+            <input type="radio" id="cnt_50" name="count" value="50"><label for="cnt_50">Top‑50</label>
+            <input type="radio" id="cnt_100" name="count" value="100"><label for="cnt_100">Top‑100</label>
+          </div>
+          <div class="small" style="margin-top:8px">Chart‑Zeitraum</div>
+          <div class="seg">
+            <input type="radio" id="rg_7" name="range" value="7"><label for="rg_7">7 Tage</label>
+            <input type="radio" id="rg_30" name="range" value="30"><label for="rg_30">30 Tage</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Darstellung</legend>
+          <div class="small">Theme</div>
+          <div class="seg">
+            <input type="radio" id="th_dark" name="theme" value="dark"><label for="th_dark">Dunkel</label>
+            <input type="radio" id="th_light" name="theme" value="light"><label for="th_light">Hell</label>
+          </div>
+          <label class="switch" style="margin-top:8px"><input type="checkbox" id="trendBgToggle"><span>Trend‑Farbe (Karten)</span></label>
+          <label class="switch" style="margin-top:8px"><input type="checkbox" id="dyorToggle"><span>DYOR‑Zeile</span></label>
+          <label class="switch" style="margin-top:8px"><input type="checkbox" id="buzzToggle"><span>Buzz‑Badge</span></label>
+          <label class="switch" style="margin-top:8px"><input type="checkbox" id="showExchToggle"><span>Börsen‑Block anzeigen</span></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Auto‑Reload</legend>
+          <label class="switch"><input type="checkbox" id="autoReloadToggleSettings"><span>Auto aktiv</span></label>
+          <div class="small" style="margin-top:8px">Intervall</div>
+          <div class="seg">
+            <input type="radio" id="ar_5" name="ar" value="5"><label for="ar_5">5 min</label>
+            <input type="radio" id="ar_15" name="ar" value="15"><label for="ar_15">15 min</label>
+            <input type="radio" id="ar_30" name="ar" value="30"><label for="ar_30">30 min</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Übersetzer</legend>
+          <label class="switch"><input type="checkbox" id="transGlobalToggle"><span>Webseiten‑Übersetzer aktiv</span></label>
+          <div class="small" style="margin-top:8px">Zielsprache</div>
+          <div class="seg">
+            <input type="radio" id="tr_en" name="translang" value="en"><label for="tr_en">EN</label>
+            <input type="radio" id="tr_de" name="translang" value="de"><label for="tr_de">DE</label>
+            <input type="radio" id="tr_es" name="translang" value="es"><label for="tr_es">ES</label>
+            <input type="radio" id="tr_fr" name="translang" value="fr"><label for="tr_fr">FR</label>
+            <input type="radio" id="tr_it" name="translang" value="it"><label for="tr_it">IT</label>
+            <input type="radio" id="tr_pl" name="translang" value="pl"><label for="tr_pl">PL</label>
+            <input type="radio" id="tr_ru" name="translang" value="ru"><label for="tr_ru">RU</label>
+          </div>
+        </fieldset>
+      
+        <fieldset>
+          <legend>Übersetzer</legend>
+          <label class="switch"><input type="checkbox" id="transGlobalToggle"><span>Globaler Webseiten‑Übersetzer</span></label>
+          <div class="small" style="margin-top:8px">Zielsprache</div>
+          <div class="seg">
+            <input type="radio" id="tr_en" name="trlang" value="en"><label for="tr_en">EN</label>
+            <input type="radio" id="tr_de" name="trlang" value="de"><label for="tr_de">DE</label>
+            <input type="radio" id="tr_es" name="trlang" value="es"><label for="tr_es">ES</label>
+            <input type="radio" id="tr_fr" name="trlang" value="fr"><label for="tr_fr">FR</label>
+            <input type="radio" id="tr_it" name="trlang" value="it"><label for="tr_it">IT</label>
+            <input type="radio" id="tr_pl" name="trlang" value="pl"><label for="tr_pl">PL</label>
+            <input type="radio" id="tr_ru" name="trlang" value="ru"><label for="tr_ru">RU</label>
+          </div>
+          <div class="hint small">Ohne KI‑API: Google‑Translate‑Proxy. Für KI‑Übersetzung kann später ein eigener Endpoint hinterlegt werden.</div>
+        </fieldset>
+    </div>
+      <div class="actions">
+        <button type="button" class="btn" id="cancelSettingsBtn">Abbrechen</button>
+        <button type="submit" class="btn">✔ Speichern</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<footer id="legal" class="legal-foot" role="contentinfo">
+  <div class="wrap">
+    <div class="row">
+      <div class="small">© 2025 OneSide Crypto. All Rights Reserved. <strong>Version:</strong> build-20250817-210352-UTC</div>
+      <div class="small">Quellen (APIs): 
+        <a href="https://www.coingecko.com/api/documentations/v3" target="_blank" rel="noopener">CoinGecko API</a> ·
+        <a href="https://developers.coinbase.com/api/v2" target="_blank" rel="noopener">Coinbase API v2</a> ·
+        <a href="https://exchangerate.host/" target="_blank" rel="noopener">exchangerate.host</a> ·
+        <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener">alternative.me (FGI)</a>
+      </div>
+      <div class="small">Weitere Referenzen: 
+        <a href="https://www.google.com/finance/" target="_blank" rel="noopener">Google Finance</a> ·
+        <a href="https://seekingalpha.com/" target="_blank" rel="noopener">Seeking Alpha</a> ·
+        <a href="https://finance.yahoo.com/" target="_blank" rel="noopener">Yahoo Finance</a> ·
+        <a href="https://www.msn.com/money" target="_blank" rel="noopener">MSN Money</a> ·
+        DYOR-Links: <a href="https://www.coingecko.com/" target="_blank" rel="noopener">CoinGecko</a> ·
+        <a href="https://www.reddit.com/" target="_blank" rel="noopener">Reddit</a> ·
+        <a href="https://x.com/" target="_blank" rel="noopener">X</a> ·
+        <a href="https://news.google.com/" target="_blank" rel="noopener">Google News</a>
+      </div>
+      <div class="small">Impressum (Platzhalter – bitte anpassen): Betreiber: OneSide Crypto · Kontakt: info@onesidecrypto.example · Sitz: —.
+        Inhaltlich verantwortlich: —. Hinweis: Keine Anlageberatung. Datenquelle ohne Gewähr; Kurse/FGI können von den Anbietern abweichen.
+        Dieses Onefile führt Requests direkt im Browser aus; es werden keine personenbezogenen Daten an einen Server des Betreibers übermittelt.
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ========= Utilities / State =========
+let BACKEND_ON = false;
+async function detectBackend(){
+  try{
+    const r = await fetch('/api/health', { method:'GET' });
+    BACKEND_ON = r.ok;
+  }catch(_){ BACKEND_ON = false; }
+  return BACKEND_ON;
+}
+async function translateTextAI(text, to){
+  if(!BACKEND_ON) return null;
+  try{
+    const r = await fetch('/api/translate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text, to }) });
+    if(!r.ok) return null; const j = await r.json(); return j.text || null;
+  }catch(_){ return null; }
+}
+async function analyzeChartAI(candles, want){ 
+  if(!BACKEND_ON) return null;
+  try{
+    const r = await fetch('/api/analyze-chart', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ candles, want }) });
+    if(!r.ok) return null; return await r.json();
+  }catch(_){ return null; }
+}
+
+
+// === UI Helper Shims (safe, no logic change) ===
+if (typeof window.qs !== 'function') { window.qs = function(s, el){ return Array.from((el||document).querySelectorAll(s)); }; }
+if (typeof window.setText !== 'function') { window.setText = function(sel, txt){ const el=document.querySelector(sel); if(el) el.textContent = (txt==null?'':String(txt)); }; }
+if (typeof window.setHTML !== 'function') { window.setHTML = function(sel, html){ const el=document.querySelector(sel); if(el) el.innerHTML = (html==null?'':String(html)); }; }
+if (typeof window.doFetch !== 'function') { window.doFetch = async function(url, opts={}){ const r = await fetchWithTimeout(url, opts); try { return await r.json(); } catch(_) { return null; } }; }
+// Provide global fallbacks for n/cur in catch/fallback branches
+if (typeof window.n === 'undefined') { try{ window.n = (typeof COUNT!=='undefined'? COUNT : 10); }catch(_){ window.n = 10; } }
+if (typeof window.cur === 'undefined') { try{ window.cur = (typeof CURRENCY!=='undefined'? CURRENCY : 'EUR'); }catch(_){ window.cur = 'EUR'; } }
+
+
+const TZ='Europe/Vienna';
+
+const USE_LOCAL_API = false; // set true if backend /api is available
+const STABLE_IDS=new Set(['tether','usd-coin','binance-usd','dai','true-usd','frax','pax-dollar','usdd','first-digital-usd','fdusd','lusd','usde','gusd','usdp','paypal-usd']);
+function q(s,el){return (el||document).querySelector(s)}; function qa(s,el){return Array.from((el||document).querySelectorAll(s));}
+function nowV(){ return new Date(new Date().toLocaleString('en-US',{timeZone:TZ})) }
+
+let CURRENCY=(localStorage.getItem('ccy')||'EUR').toUpperCase();
+let COUNT=parseInt(localStorage.getItem('count')||'5',10);
+let RANGE=parseInt(localStorage.getItem('range')||'7',10);
+let THEME=localStorage.getItem('theme')||'dark';
+let TREND_BG=(localStorage.getItem('trendBg')||'off')==='on';
+let SHOW_DYOR=(localStorage.getItem('showDyor')||'on')==='on';
+let SHOW_BUZZ=(localStorage.getItem('showBuzz')||'on')==='on';
+let SHOW_EXCH=(localStorage.getItem('showExch')||'on')==='on';
+let AUTO_RELOAD=(localStorage.getItem('autoReload')||'off')==='on';
+let AUTO_MIN=parseInt(localStorage.getItem('autoMin')||'15',10);
+
+let lastCoins=[]; let trendingIds=new Set();
+let autoTimer=null; let nextReloadAt=null; let countdownTimer=null;
+
+function applyTheme(){ document.documentElement.setAttribute('data-theme',THEME); }
+function applyTrendBg(){
+  document.body.classList.toggle('trend-on',!!TREND_BG);
+  if(!TREND_BG) return;
+  document.querySelectorAll('.coin[data-change]').forEach(c=>{
+    c.classList.remove('trend-up','trend-mid','trend-down');
+    const v = parseFloat(String(c.getAttribute('data-change')).replace(',','.')) || 0;
+    c.classList.add(v>1.5?'trend-up':(v<-1.5?'trend-down':'trend-mid'));
+  });
+}
+function applyShowExch(){ const sec=document.getElementById('exchangesSection'); if(sec){ sec.style.display = SHOW_EXCH ? '' : 'none'; } }
+function updateAutoLabel(){ const el=q('#autoLbl'); if(el) el.textContent='Auto '+AUTO_MIN+' min'; }
+function updateCountdown(){
+  const el=q('#autoCountdown'); if(!el) return;
+  if(AUTO_RELOAD && nextReloadAt){ const diff=Math.max(0,nextReloadAt-Date.now()); const mm=Math.floor(diff/60000), ss=Math.floor((diff%60000)/1000); el.textContent=String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0'); }
+  else el.textContent='–:–';
+}
+function layoutPad(){ const h=q('.topbar'); const hp=(h&&h.getBoundingClientRect)?Math.ceil(h.getBoundingClientRect().height):72; document.documentElement.style.setProperty('--header-h',hp+'px'); document.body.setAttribute('data-pad','on'); }
+
+function fmtCur(n){ return new Intl.NumberFormat('de-AT',{style:'currency',currency:CURRENCY,maximumFractionDigits:2}).format(n); }
+function fmtCurC(n){ return new Intl.NumberFormat('de-AT',{style:'currency',currency:CURRENCY,notation:'compact',maximumFractionDigits:2}).format(n); }
+function fmtPct(n){ if(n==null||isNaN(n)) return '–'; return new Intl.NumberFormat('de-AT',{maximumFractionDigits:2,minimumFractionDigits:2}).format(n)+'%'; }
+function pc(v){ return (v==null)?'':(v>=0?'pos':'neg'); }
+
+function stamp(msg, ok=true){ const t=nowV().toLocaleString('de-AT',{timeZone:TZ,hour12:false}); q('#globalStatus').textContent = (ok?'Fertig. ':'Hinweis: ') + msg; return t; }
+
+// ========= Auto reload =========
+function setAutoReload(enabled){
+  const t1=q('#autoReloadToggle'), t2=q('#autoReloadToggleSettings');
+  if(t1) t1.checked=!!enabled; if(t2) t2.checked=!!enabled;
+  localStorage.setItem('autoReload', enabled?'on':'off');
+  AUTO_RELOAD=!!enabled; updateAutoLabel();
+  if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+  if(!countdownTimer){ countdownTimer=setInterval(updateCountdown,1000); }
+  if(AUTO_RELOAD){ nextReloadAt=Date.now()+AUTO_MIN*60*1000; updateCountdown(); autoTimer=setInterval(()=>{ boot(); }, AUTO_MIN*60*1000); }
+  else { nextReloadAt=null; updateCountdown(); }
+}
+
+// ========= Data =========
+
+// === Crypto‑Pulse (kompakt) ===
+const STABLE_SYMS = new Set(['USDT','USDC','FDUSD','TUSD','DAI','USDP','USDD','PYUSD','GUSD','EURS','EURT']);
+const STABLE_ID_PARTS = ['tether','usd-coin','binance-usd','dai','true-usd','pax','usdd','pyusd','gusd','euro-','eur-','fdusd'];
+function isStableCoin(row){
+  try{
+    const sym = String(row.symbol||'').toUpperCase();
+    const id  = String(row.id||'').toLowerCase();
+    const name= String(row.name||'').toLowerCase();
+    if(STABLE_SYMS.has(sym)) return true;
+    return STABLE_ID_PARTS.some(p=> id.includes(p) || name.includes(p));
+  }catch(_){ return false; }
+}
+function fmtPct(v){ if(v==null||!isFinite(v)) return '–'; const s=(v>=0?'+':'')+v.toFixed(1)+'%'; return s; }
+function setPulseTile(id, {val, sub, state}){
+  const el = document.getElementById(id); if(!el) return;
+  el.classList.remove('red','green','yellow');
+  if(state) el.classList.add(state);
+  const kval = el.querySelector('.kval'), ksub = el.querySelector('.ksub');
+  if(kval) kval.textContent = val!=null? String(val) : '–';
+  if(ksub) ksub.textContent = sub||'';
+}
+async function fetchFunding(){
+  try{
+    const [b,e] = await Promise.all([
+      fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT',{timeoutMs:7000}).then(r=>r.json()),
+      fetchWithTimeout('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=ETHUSDT',{timeoutMs:7000}).then(r=>r.json())
+    ]);
+    const fB = (parseFloat(b.lastFundingRate||b.fundingRate)||0)*100;
+    const fE = (parseFloat(e.lastFundingRate||e.fundingRate)||0)*100;
+    return {btc:fB, eth:fE, next:new Date(+b.nextFundingTime||+e.nextFundingTime||Date.now())};
+  }catch(_){ return {btc:null,eth:null,next:null}; }
+}
+async function fetchFees(){
+  try{
+    const j = await fetchWithTimeout('https://mempool.space/api/v1/fees/recommended',{timeoutMs:7000}).then(r=>r.json());
+    const hi = j.fastestFee??j.high_priority??null;
+    const lo = j.hourFee??j.economyFee??null;
+    return {fast:hi, hour:lo};
+  }catch(_){ return {fast:null,hour:null}; }
+}
+function updateCryptoPulse(srcTag){
+  const coins = Array.isArray(lastCoins)? lastCoins : [];
+  const exStable = coins.filter(c=> !isStableCoin(c) );
+  const withMc = exStable.filter(c=> typeof c.mc==='number' && isFinite(c.mc) && c.mc>0);
+  const totalMc = withMc.reduce((a,c)=> a+(c.mc||0), 0);
+  const btc = coins.find(c=> (String(c.id||'').toLowerCase()==='bitcoin' || String(c.symbol||'').toUpperCase()==='BTC'));
+  const eth = coins.find(c=> (String(c.id||'').toLowerCase()==='ethereum' || String(c.symbol||'').toUpperCase()==='ETH'));
+  // 1) BTC Dominance
+  let dom = null;
+  if(btc && totalMc>0 && typeof btc.mc==='number') dom = (btc.mc/totalMc)*100;
+  setPulseTile('pulse-btcdom', {
+    val: dom!=null? dom.toFixed(1)+'%' : '–',
+    sub: srcTag==='BINANCE' ? 'n.v. (ohne MC)' : (dom!=null? 'ex‑Stable, Top‑N' : 'Daten unvollständig'),
+    state: (dom!=null? (dom>=55?'yellow':(dom<=45?'green':null)) : null)
+  });
+  // 2) ETH/BTC
+  const ratio = (btc&&eth && btc.price>0 && eth.price>0) ? (eth.price/btc.price) : null;
+  setPulseTile('pulse-ethbtc', {
+    val: ratio!=null? ratio.toFixed(3) : '–',
+    sub: 'Preis‑Ratio',
+    state: ratio!=null? (ratio>=0.06? 'green' : (ratio<0.05? 'red': null)) : null
+  });
+  // 3) Stable‑Power
+  const stables = coins.filter(isStableCoin).filter(c=> typeof c.mc==='number' && c.mc>0);
+  const stableMc = stables.reduce((a,c)=> a+(c.mc||0), 0);
+  const share = (stableMc>0 && (stableMc+totalMc)>0) ? (stableMc/(stableMc+totalMc))*100 : null;
+  setPulseTile('pulse-stables', {
+    val: share!=null? share.toFixed(1)+'%' : '–',
+    sub: srcTag==='BINANCE' ? 'n.v. (ohne MC)' : 'Anteil an Top‑N',
+    state: share!=null? (share>=25?'yellow':(share<=12?'green':null)) : null
+  });
+  // 5) Breadth 7d
+  const has7 = exStable.filter(c=> typeof c.ch7==='number').length;
+  const green7 = exStable.filter(c=> typeof c.ch7==='number' && c.ch7>0).length;
+  const breadth = has7>0 ? (green7/has7)*100 : null;
+  setPulseTile('pulse-breadth', {
+    val: breadth!=null? breadth.toFixed(0)+'%' : '–',
+    sub: has7>0? `${green7}/${has7} im Plus` : 'n.v.',
+    state: breadth!=null? (breadth>=60?'green':(breadth<40?'red':'yellow')) : null
+  });
+  // Status
+  const st = document.getElementById('pulseStatus');
+  if(st) st.textContent = 'Quelle: '+ (srcTag||'–');
+}
+async function refreshPulseExtras(){
+  // 4) Funding
+  const f = await fetchFunding();
+  const fTxt = (v)=> v==null? '–' : (v>=0?'+':'')+v.toFixed(3)+'%';
+  const next = f.next ? new Date(f.next) : null;
+  const sub = next ? ('nächste: '+ new Date(next).toLocaleTimeString('de-AT',{hour:'2-digit',minute:'2-digit'})) : '';
+  const stateB = f.btc!=null? (f.btc>0.05?'red':(f.btc<-0.01?'green':null)) : null;
+  const stateE = f.eth!=null? (f.eth>0.05?'red':(f.eth<-0.01?'green':null)) : null;
+  setPulseTile('pulse-funding', { val: `BTC ${fTxt(f.btc)} · ETH ${fTxt(f.eth)}`, sub, state: stateB||stateE });
+  // 6) Mempool fees
+  const fees = await fetchFees();
+  const sub2 = fees.hour!=null? `~1h: ${fees.hour} sat/vB` : '';
+  const st2 = fees.fast!=null? (fees.fast>60?'red':(fees.fast<15?'green':null)) : null;
+  setPulseTile('pulse-mempool', { val: fees.fast!=null? `${fees.fast} sat/vB`:'–', sub: sub2, state: st2 });
+}
+
+
+async function fetchWithTimeout(url,opts={}){
+  const t=opts.timeoutMs||9000; const retries=(opts.retries==null)?1:opts.retries;
+  for(let a=0;a<=retries;a++){
+    const ctrl=new AbortController(); const id=setTimeout(()=>ctrl.abort(),t);
+    try{
+      const res=await fetch(url,{...opts,signal:ctrl.signal}); clearTimeout(id);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      return res;
+    }catch(e){ clearTimeout(id); if(a===retries) throw e; await new Promise(r=>setTimeout(r,400*(a+1))); }
+
+
+  }
+}
+
+
+// --- Fallback helpers: FX + CoinLore + Binance ---
+async function fxUSDto(ccy){
+  ccy = (ccy||'EUR').toUpperCase();
+  if(ccy === 'USD') return 1;
+  try{
+    const r = await fetchWithTimeout(`https://api.exchangerate.host/convert?from=USD&to=${encodeURIComponent(ccy)}`, {timeoutMs:8000});
+    const j = await r.json();
+    const res = (j && typeof j.result === 'number') ? j.result : 1;
+    return res || 1;
+  }catch(_){ return 1; }
+}
+
+function mapCoinLoreToList(data, n, ccy, fx){
+  const arr = Array.isArray(data?.data) ? data.data : [];
+  const filtered = arr.filter(it=>{
+    const id = String(it.nameid||'').toLowerCase();
+    return !(STABLE_IDS && typeof STABLE_IDS.has==='function' && STABLE_IDS.has(id));
+  }).slice(0, n);
+
+  const sumMc = filtered.reduce((a,c)=> a + (((+c.market_cap_usd)||0)*fx), 0) || 1;
+
+  return filtered.map(c=>({
+    id: String(c.nameid||c.symbol||'').toLowerCase(),
+    name: c.name,
+    symbol: String(c.symbol||'').toUpperCase(),
+    image: "",
+    price: ((+c.price_usd)||0)*fx,
+    ch24:  (+c.percent_change_24h)||0,
+    ch7:   (c.percent_change_7d==null)?null:(+c.percent_change_7d||0),
+    mc:    ((+c.market_cap_usd)||0)*fx,
+    vol24: ((+c.volume24)||0)*fx,
+    dominance: (((+c.market_cap_usd||0)*fx)/sumMc)*100,
+    spark7: [],
+    athDraw: null
+  }));
+}
+
+async function loadFromCoinLore(n, ccy){
+  const url = `https://api.coinlore.net/api/tickers/?start=0&limit=${Math.min(250, n+20)}`;
+  const r = await fetchWithTimeout(url, {timeoutMs:9000});
+  if(!r.ok) throw new Error('CoinLore HTTP '+r.status);
+  const j = await r.json();
+  const fx = await fxUSDto(ccy);
+  return mapCoinLoreToList(j, n, ccy, fx);
+}
+
+// Binance 24h ticker (USDT pairs) as last-resort price fallback
+async function loadFromBinance(n, ccy){
+  const r = await fetchWithTimeout('https://api.binance.com/api/v3/ticker/24hr', {timeoutMs:9000});
+  if(!r.ok) throw new Error('Binance HTTP '+r.status);
+  const arr = await r.json();
+  // USDT pairs only, exclude leveraged & stablecoin bases
+  const STABLE_BASES = new Set(['USDT','USDC','FDUSD','TUSD','DAI','USDP','USDD','PYUSD','GUSD','EURS','EURT']);
+  const badSuffix = ['UPUSDT','DOWNUSDT','BULLUSDT','BEARUSDT'];
+  const isBad = (sym)=> badSuffix.some(sfx=> sym.endsWith(sfx));
+  const rows = (Array.isArray(arr)?arr:[])
+   .filter(o=> typeof o.symbol==='string' && o.symbol.endsWith('USDT') && !isBad(o.symbol))
+   .map(o=>{
+      const sym = o.symbol.replace('USDT','');
+      if(STABLE_BASES.has(sym)) return null;
+      return {
+        base: sym,
+        last: +o.lastPrice || 0,
+        ch24: +o.priceChangePercent || 0,
+        qvol: +o.quoteVolume || 0
+      };
+   }).filter(Boolean)
+   .sort((a,b)=> b.qvol - a.qvol)
+   .slice(0, n);
+
+  const fx = await fxUSDto(ccy);
+  const list = rows.map(r=>({
+    id: r.base.toLowerCase(),
+    name: r.base,
+    symbol: r.base,
+    image: "",
+    price: r.last * fx,          // USDT≈USD → FX to ccy
+    ch24:  r.ch24,
+    ch7:   null,
+    mc:    null,
+    vol24: r.qvol * fx,          // quote vol in USDT
+    dominance: null,
+    spark7: [],
+    athDraw: null
+  }));
+  return list;
+}
+
+
+
+// ========= Load Top Coins via public APIs (CoinGecko → CoinLore → Binance) =========
+
+async function loadTopCoinsRemote(n = COUNT, cur = CURRENCY){
+  // --- 1) CoinGecko primary
+  try{
+    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${encodeURIComponent(cur)}&order=market_cap_desc&per_page=${Math.min(250, n+20)}&page=1&sparkline=true&price_change_percentage=24h,7d`;
+    const r = await fetchWithTimeout(url, {timeoutMs: 10000});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    const arr = Array.isArray(data) ? data : [];
+
+    const isStable = (id)=> !!(STABLE_IDS && typeof STABLE_IDS.has==='function' && STABLE_IDS.has(String(id).toLowerCase()));
+    const filtered = arr.filter(c=>!isStable(c.id)).slice(0, n);
+    const sumMc = filtered.reduce((a,c)=> a + (+c.market_cap||0), 0) || 1;
+
+    const list = filtered.map(c=>({
+      id: String(c.id||'').toLowerCase(),
+      name: c.name, symbol:String(c.symbol||'').toUpperCase(), image:c.image||'',
+      price:+c.current_price||0,
+      ch24:+(c.price_change_percentage_24h||0),
+      ch7:+(c.price_change_percentage_7d_in_currency||0),
+      mc:+c.market_cap||0, vol24:+c.total_volume||0, dominance: ((+c.market_cap||0)/sumMc)*100,
+      spark7:(c.sparkline_in_7d && Array.isArray(c.sparkline_in_7d.price))?c.sparkline_in_7d.price:[],
+      athDraw:(typeof c.ath_change_percentage==='number')?Math.abs(c.ath_change_percentage):null
+    }));
+
+    lastCoins = list;
+    renderTopCoins(list);
+    try{ applyTrendBg(); }catch(_){}
+
+    const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const now = nowV();
+    setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
+    setText('#topNLabel', `Top-${n} Coins`);
+    setHTML('#topNote', `<span class="ok">Quelle:</span> CoinGecko · Stablecoins ausgeschlossen · Währung: <b>${cur}</b>`);
+    setText('#globalStatus', 'Fertig');
+    try{ updateCryptoPulse('COINGECKO'); refreshPulseExtras(); }catch(_){/*noop*/}
+    return;
+  }catch(e1){
+    console.warn('CoinGecko fehlgeschlagen – Fallback CoinLore', e1);
+  }
+
+  // --- 2) CoinLore fallback
+  try{
+    const list = await loadFromCoinLore(n, cur);
+    lastCoins = list;
+    renderTopCoins(list);
+    try{ applyTrendBg(); }catch(_){}
+    const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const now = nowV();
+    setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
+    setText('#topNLabel', `Top-${n} Coins`);
+    setHTML('#topNote', `<span class="ok">Quelle:</span> CoinLore (FX) · Stablecoins ausgeschlossen · Währung: <b>${cur}</b>`);
+    setText('#globalStatus', 'Fertig (Fallback 2 aktiv)');
+    try{ updateCryptoPulse('COINLORE'); refreshPulseExtras(); }catch(_){}
+    return;
+  }catch(e2){
+    console.warn('CoinLore fehlgeschlagen – Fallback Binance', e2);
+  }
+
+  // --- 3) Binance fallback (price only)
+  try{
+    const list = await loadFromBinance(n, cur);
+    lastCoins = list;
+    renderTopCoins(list);
+    try{ applyTrendBg(); }catch(_){}
+    const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const now = nowV();
+    setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
+    setText('#topNLabel', `Top-${n} Coins`);
+    setHTML('#topNote', `<span class="warn">Quelle:</span> Binance 24h Ticker (nur Preis/%24h, ohne MC/Sparkline) + FX · Währung: <b>${cur}</b>`);
+    setText('#globalStatus', 'Fertig (Fallback 3 aktiv)');
+    try{ updateCryptoPulse('BINANCE'); refreshPulseExtras(); }catch(_){/*noop*/}
+    return;
+  }catch(e3){
+    console.error('Alle Quellen fehlgeschlagen:', e3);
+    setText('#globalStatus','Fehler beim Laden (alle Quellen).');
+  }
+}
+
+// ========= Rendering =========
+function drawSpark(canvas, arr){
+  const ctx=canvas.getContext('2d'); const dpr=window.devicePixelRatio||1;
+  const w=canvas.width=canvas.clientWidth*dpr; const h=canvas.height=canvas.clientHeight*dpr;
+  ctx.clearRect(0,0,w,h);
+  if(!arr||arr.length<2){ ctx.fillStyle='#99a'; ctx.fillText('–',6,h-6); return; }
+  const min=Math.min(...arr), max=Math.max(...arr), pad=4*dpr, range=(max-min)||1;
+  ctx.lineWidth=2*dpr; const up=arr[arr.length-1]>=arr[0]; ctx.strokeStyle=up?'#22c55e':'#ef4444';
+  ctx.beginPath();
+  arr.forEach((v,i)=>{ const x=pad+(w-2*pad)*(i/(arr.length-1)); const y=h-pad-((v-min)/range)*(h-2*pad); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+  ctx.stroke();
+  const lx=pad+(w-2*pad), ly=h-pad-((arr[arr.length-1]-min)/range)*(h-2*pad); ctx.beginPath(); ctx.arc(lx,ly,3*dpr,0,Math.PI*2); ctx.fillStyle=ctx.strokeStyle; ctx.fill();
+}
+
+function buzzSourceFor(c){
+  if(!SHOW_BUZZ) return null;
+  if(trendingIds.has(c.id)) return 'CoinGecko Trending';
+  if(c.vol24 && c.mc && (c.vol24/c.mc)>0.25) return 'Volumen‑Spike (>25% MC)';
+  return null;
+}
+function htmlDYOR(c,src){
+  if(!SHOW_DYOR) return '';
+  const qstr=encodeURIComponent((c.name||'')+' '+(c.symbol||''));
+  return `<div class="small muted">DYOR: <a href="https://www.coingecko.com/en/coins/${c.id}" target="_blank" rel="noopener">CoinGecko</a> · <a href="https://www.reddit.com/search/?q=${qstr}" target="_blank" rel="noopener">Reddit</a> · <a href="https://x.com/search?q=${qstr}" target="_blank" rel="noopener">X</a> · <a href="https://news.google.com/search?q=${qstr}" target="_blank" rel="noopener">News</a> <span class="muted">Quelle: ${src||'–'}</span></div>`;
+}
+
+function renderTopCoins(list){
+  const grid=q('#coinGrid'); grid.innerHTML='';
+  if(!list||!list.length){ grid.innerHTML='<div class="hint error">Keine Daten.</div>'; return; }
+  for(let i=0;i<list.length;i++){
+    const c=list[i]; const compact=(COUNT>10 && i>=10);
+    const mom=momentumScore(c);
+    const buzz=buzzSourceFor(c);
+    const el=document.createElement('article'); el.className='coin'+(compact?' compact':'');
+	el.setAttribute('data-change', (typeof c.ch24 === 'number' ? c.ch24 : 0));
+	const header=`<header>
+  <img src="${c.image||''}
+  try{ applyTrendBg(); }catch(_){}
+" alt="" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border)" onerror="this.style.display='none'">
+  <div class="meta"><div class="sym">${c.symbol}</div><div class="name muted small">${c.name}</div></div>
+  <div class="price-inline ${pc(c.ch24)}">${fmtCur(c.price)}</div></header>`;
+  
+     if(compact){
+      el.innerHTML=header
+        + `<div class=\"row price\"><div class=\"muted small\">Preis</div><div>${fmtCur(c.price)}</div></div>`
+        + `<div class=\"row ch24\"><div class=\"muted small\">24h</div><div class=\"${pc(c.ch24)}\">${fmtPct(c.ch24)}</div></div>`
+        + `<canvas class=\"spark compact\" aria-label=\"Sparkline ${c.symbol} (${RANGE}d)\"></canvas>`;
+    el.addEventListener('click', (ev)=>{ if(ev.target.closest('a,button')) return; if(window.matchMedia('(max-width: 640px)').matches){ openCardOverlay(el); } }); 
+    }else{
+      el.innerHTML=header
+        + `<div class="row price"><div class="muted small">Preis</div><div>${fmtCur(c.price)}</div></div>`
+        + `<div class="row ch24"><div class="muted small">24h</div><div class="${pc(c.ch24)}">${fmtPct(c.ch24)}</div></div>`
+        + `<div class="row ch7"><div class="muted small">7d</div><div class="${pc(c.ch7)}">${fmtPct(c.ch7)}</div></div>`
+        + `<div class="row"><div class="muted small">MCap</div><div>${c.mc?fmtCurC(c.mc):'–'}</div></div>`
+        + `<div class="row"><div class="muted small">Vol 24h</div><div>${c.vol24?fmtCurC(c.vol24):'–'}</div></div>`
+        + `<div class="row"><div class="muted small">Dominanz</div><div>${fmtPct(c.dominance)}</div></div>`
+        + `<div class="row"><div class="muted small">ATH‑DD</div><div>${(typeof c.athDraw==='number')?fmtPct(c.athDraw):'–'}</div></div>`
+        + htmlDYOR(c,buzz)
+        + `<canvas class="spark" aria-label="Sparkline ${c.symbol} (${RANGE}d)"></canvas>`;
+    }
+    grid.appendChild(el);
+    const canvas=q('canvas.spark',el);
+    if(RANGE===7 && c.spark7){ drawSpark(canvas,c.spark7); }
+    else { const ctx=canvas.getContext('2d'); ctx.fillText('–',6,16); }
+  }
+  buildScenario(list);
+  try { applyTrendBg(); } catch(_) {}
+}
+
+
+
+function openCardOverlay(cardEl){
+  const ov = q('#cardOverlay'), cont = q('#overlayContent');
+  if(!ov || !cont) return;
+  // Clone the card to show full details
+  const clone = cardEl.cloneNode(true);
+  // Ensure all rows visible in overlay
+  clone.querySelectorAll('.row').forEach(r=> r.style.display='');
+  clone.querySelectorAll('.spark').forEach(s=> s.style.display='');
+  cont.innerHTML = '';
+  cont.appendChild(clone);
+  ov.classList.add('open'); ov.setAttribute('aria-hidden','false');
+}
+function closeCardOverlay(){
+  const ov = q('#cardOverlay'); if(!ov) return;
+  ov.classList.remove('open'); ov.setAttribute('aria-hidden','true');
+  const cont = q('#overlayContent'); if(cont) cont.innerHTML='';
+}
+document.addEventListener('click', (e)=>{
+  if(e.target && e.target.id==='overlayClose') { closeCardOverlay(); }
+  // clicking outside card closes
+  const ov = q('#cardOverlay');
+  if(ov && ov.classList.contains('open')){
+    const cardBox = q('.overlay-card', ov);
+    if(cardBox && !cardBox.contains(e.target) && ov.contains(e.target)) closeCardOverlay();
+  }
+});
+
+
+
+// ========= Szenario =========
+function momentumScore(c){
+  let s=0.5;
+  if(typeof c.ch24==='number') s+=Math.tanh(c.ch24/10)*0.2;
+  if(typeof c.ch7==='number') s+=Math.tanh(c.ch7/20)*0.2;
+  if(c.spark7 && c.spark7.length>1){ const slope=(c.spark7[c.spark7.length-1]-c.spark7[0])/(c.spark7[0]||1); s+=Math.tanh(slope*2)*0.2; }
+  return Math.max(0,Math.min(1,s));
+}
+function probsFromMomentum(m){ const x=(m*2)-1, s=0.55, d=2*s*s;
+  const sb=Math.exp(-((x+1)*(x+1))/d), sm=Math.exp(-(x*x)/d), su=Math.exp(-((x-1)*(x-1))/d);
+  let bear=Math.round((sb/(sb+sm+su))*100), base=Math.round((sm/(sb+sm+su))*100), bull=100-bear-base; return {bear,base,bull}; }
+function computeScenario(m){ return probsFromMomentum(m); }
+function makeReason(c,m){ const arr=[]; if(typeof c.ch24==='number') arr.push('24h '+(c.ch24>=0?'+':'')+c.ch24.toFixed(2)+'%'); if(typeof c.ch7==='number') arr.push('7d '+(c.ch7>=0?'+':'')+c.ch7.toFixed(2)+'%'); if(c.vol24) arr.push('Vol '+fmtCurC(c.vol24)); arr.push(m>0.5?'Momentum ↑':'Momentum ↓/seitw.'); return arr.join(' · '); }
+
+function bgStyle(kind, val, bear, base, bull){
+  const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
+  const ease=p=>Math.pow(clamp(p,0,1),0.7);
+  const aMap=(lo,hi,p)=>(lo+(hi-lo)*ease(p/100)).toFixed(3);
+  const v=clamp(val||0,0,100);
+  if(kind==='bear') return `background: rgba(239,68,68,${aMap(0.06,0.22,v)});`;
+  if(kind==='bull') return `background: rgba(34,197,94,${aMap(0.06,0.22,v)});`;
+  if(kind==='base'){ const baseA=aMap(0.04,0.10,v); const tilt=clamp(Math.abs((bull||0)-(bear||0)),0,100);
+    const tiltA=aMap(0.00,0.16,tilt); const rgb=((bull||0)>=(bear||0))?'34,197,94':'239,68,68';
+    return `background: linear-gradient(180deg, rgba(245,158,11,${baseA}), rgba(245,158,11,${baseA})), linear-gradient(180deg, rgba(${rgb},${tiltA}), rgba(${rgb},${tiltA}));`; }
+  return '';
+}
+
+function buildScenario(list){
+  const tb=q('#scenTable tbody'); tb.innerHTML='';
+  const enriched=list.map(c=>{ const m=momentumScore(c); const sc=computeScenario(m); const score=(sc.bull-sc.bear)+(m-0.5)*20 + (trendingIds.has(c.id)?15:0) + ((c.vol24&&c.mc&&(c.vol24/c.mc)>0.25)?8:0); return {c,m,sc,score}; });
+  enriched.sort((a,b)=>b.score-a.score || b.sc.bull-a.sc.bull || (b.c.mc||0)-(a.c.mc||0));
+  enriched.forEach(({c,m,sc})=>{
+    const bear=sc.bear, base=sc.base, bull=sc.bull;
+    const maxTag = (bull>=base && bull>=bear) ? 'bull' : (base>=bear ? 'base' : 'bear');
+    const tr=document.createElement('tr');
+    const buzz= buzzSourceFor(c);
+    tr.innerHTML=`<td><strong>${c.symbol}</strong>${buzz?' <span title="'+buzz+'">🔥</span>':''}</td>
+      <td class="col-bull${maxTag==='bull'?' emph':''}" style="${bgStyle('bull',bull,bear,base,bull)}">${bull}%</td>
+      <td class="col-base${maxTag==='base'?' emph':''}" style="${bgStyle('base',base,bear,base,bull)}">${base}%</td>
+      <td class="col-bear${maxTag==='bear'?' emph':''}" style="${bgStyle('bear',bear,bear,base,bull)}">${bear}%</td>
+      <td class="small col-reason">${makeReason(c,m)}</td>`;
+    tb.appendChild(tr);
+  });
+  q('#ts-scen').textContent='Stand: '+ nowV().toLocaleString('de-AT',{timeZone:TZ,hour12:false});
+}
+
+
+// ========= Exchanges =========
+function renderExchanges(){
+  const wrap=q('#exchList'); wrap.innerHTML='';
+  const list=[{id:'binance',name:'Binance',url:'https://www.binance.com/'},{id:'coinbase',name:'Coinbase',url:'https://www.coinbase.com/'},{id:'kraken',name:'Kraken',url:'https://www.kraken.com/'},{id:'bitget',name:'Bitget',url:'https://www.bitget.com/'}];
+  list.forEach(x=>{ const ref=localStorage.getItem('ref_'+x.id)||''; const href=ref||x.url; const card=document.createElement('div'); card.className='section'; card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>${x.name}</strong><div class="small"><a href="${href}" target="_blank" rel="noopener">Account eröffnen</a></div></div>
+      <span class="badge">${ref?'Ref‑Link aktiv':'Offizieller Link'}</span></div>`; wrap.appendChild(card); });
+}
+
+// ========= Settings =========
+function populateSettings(){
+  qa('input[name="ccy"]').forEach(r=>r.checked=(r.value.toUpperCase()===CURRENCY));
+  qa('input[name="count"]').forEach(r=>r.checked=(parseInt(r.value,10)===COUNT));
+  qa('input[name="range"]').forEach(r=>r.checked=(parseInt(r.value,10)===RANGE));
+  qa('input[name="theme"]').forEach(r=>r.checked=(r.value===THEME));
+  q('#trendBgToggle').checked=TREND_BG; q('#dyorToggle').checked=SHOW_DYOR; q('#buzzToggle').checked=SHOW_BUZZ; q('#showExchToggle').checked=SHOW_EXCH;
+  q('#autoReloadToggleSettings').checked=AUTO_RELOAD; qa('input[name="ar"]').forEach(r=>r.checked=(parseInt(r.value,10)===AUTO_MIN));
+}
+function openSettings(){ populateSettings(); const m=q('#settingsModal'); m.setAttribute('open',''); m.removeAttribute('aria-hidden'); }
+function closeSettings(){ const m=q('#settingsModal'); m.removeAttribute('open'); m.setAttribute('aria-hidden','true'); }
+function onSettingsSubmit(e){
+  e.preventDefault();
+  const ccy=q('input[name="ccy"]:checked'); CURRENCY=(ccy?ccy.value:'EUR').toUpperCase(); localStorage.setItem('ccy',CURRENCY);
+  const cnt=q('input[name="count"]:checked'); COUNT=parseInt(cnt?cnt.value:'5',10); localStorage.setItem('count',String(COUNT));
+  const rng=q('input[name="range"]:checked'); RANGE=parseInt(rng?rng.value:'7',10); localStorage.setItem('range',String(RANGE));
+  const th=q('input[name="theme"]:checked'); THEME=th?th.value:'dark'; localStorage.setItem('theme',THEME);
+  TREND_BG=!!q('#trendBgToggle').checked; localStorage.setItem('trendBg',TREND_BG?'on':'off');
+  SHOW_DYOR=!!q('#dyorToggle').checked; localStorage.setItem('showDyor',SHOW_DYOR?'on':'off');
+  SHOW_BUZZ=!!q('#buzzToggle').checked; localStorage.setItem('showBuzz',SHOW_BUZZ?'on':'off');
+  SHOW_EXCH=!!q('#showExchToggle').checked; localStorage.setItem('showExch',SHOW_EXCH?'on':'off');
+  const auto=q('#autoReloadToggleSettings'); setAutoReload(!!auto.checked);
+  const iv=q('input[name="ar"]:checked'); AUTO_MIN=parseInt(iv?iv.value:'15',10)||15; localStorage.setItem('autoMin',String(AUTO_MIN)); updateAutoLabel();
+  closeSettings(); applyTheme(); applyTrendBg(); applyShowExch(); layoutPad(); boot();
+}
+
+
+// ========= Trending & FGI (added safely) =========
+async function loadTrending(){
+  try{
+    const r = await fetchWithTimeout('https://api.coingecko.com/api/v3/search/trending', { timeoutMs: 9000 });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    const coins = (j && Array.isArray(j.coins)) ? j.coins.map(x=>x.item) : [];
+    window._trending = coins;
+    const lab = coins.slice(0,3).map(c=>String(c.symbol||c.name||'').toUpperCase()).join(' · ');
+    const el = document.getElementById('pulseStatus');
+    if(el) el.textContent = lab ? ('Trending: '+lab) : 'Trending geladen';
+  }catch(e){
+    console.warn('loadTrending failed', e);
+  }
+}
+
+async function loadFGI(){
+  try{
+    const r = await fetchWithTimeout('https://api.alternative.me/fng/?limit=1', { timeoutMs: 9000 });
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    const d = (j && j.data && j.data[0]) ? j.data[0] : null;
+    if(!d){ throw new Error('No data'); }
+    const v = Number(d.value); const cls = String(d.value_classification||'').toUpperCase();
+    const ts = d.timestamp ? new Date(Number(d.timestamp)*1000) : new Date();
+    setText('#fgiGauge', `FGI: ${isFinite(v)?v:'–'} (${cls||'–'})`);
+    setText('#ts-fgi', 'Stand: '+ ts.toLocaleString('de-AT',{timeZone:TZ,hour12:false}));
+    const t = document.getElementById('fgiText'); if(t) t.textContent = 'Quelle: alternative.me';
+  }catch(e){
+    console.warn('loadFGI failed', e);
+    const wrap = document.getElementById('fgiImgWrap'); if(wrap) wrap.style.display = 'block';
+    const t = document.getElementById('fgiText'); if(t) t.textContent = 'FGI Bild-Fallback aktiviert.';
+  }
+}
+// ========= Boot =========
+async function boot(){
+  
+  await detectBackend();
+applyTheme(); applyTrendBg(); applyShowExch(); layoutPad(); updateAutoLabel();
+  q('#hdrCount').textContent=String(COUNT);
+  q('#meta-time').textContent='Stand: '+ nowV().toLocaleString('de-AT',{timeZone:TZ,hour12:false})+' · '+CURRENCY;
+  q('#autoReloadToggle').checked=AUTO_RELOAD;
+  setAutoReload(AUTO_RELOAD); if(!countdownTimer){ countdownTimer=setInterval(updateCountdown,1000); }
+  renderExchanges();
+  await Promise.allSettled([loadTrending(), loadFGI()]);
+  await (USE_LOCAL_API ? loadTopCoins() : Promise.resolve());
+  
+}
+
+// ========= Events =========
+window.addEventListener('resize', layoutPad);
+document.addEventListener('DOMContentLoaded', layoutPad);
+
+q('#refreshBtn').addEventListener('click', ()=>{ if(AUTO_RELOAD){ nextReloadAt=Date.now()+AUTO_MIN*60*1000; } boot(); });
+q('#openSettingsBtn').addEventListener('click', openSettings);
+q('#closeSettingsBtn').addEventListener('click', closeSettings);
+q('#cancelSettingsBtn').addEventListener('click', closeSettings);
+q('#settingsModal').addEventListener('click', (e)=>{ if(e.target.id==='settingsModal') closeSettings(); });
+q('#settingsForm').addEventListener('submit', onSettingsSubmit);
+
+
+
+q('#autoReloadToggle').addEventListener('change', (e)=> setAutoReload(!!e.target.checked));
+
+
+// Observe header size changes (e.g., when toolbar wraps)
+try{
+  const _topbar = q('.topbar');
+  if(window.ResizeObserver && _topbar){
+    const ro = new ResizeObserver(()=> layoutPad());
+    ro.observe(_topbar);
+  }
+}catch(_e){}
+window.addEventListener('orientationchange', layoutPad);
+window.addEventListener('pageshow', layoutPad);
+
+q('#newsHighOnly') && q('#newsHighOnly').addEventListener('change', ()=>{
+  try{
+    const j=JSON.parse(localStorage.getItem('newsCache')||'{}'); renderNews(j.items||[], false);
+  }catch(_){ loadNews(); }
+});
+
+// Start
+boot();
+
+// ==== Geo/Makro compact (AI) + Translator ====
+let GEO_LANG = (localStorage.getItem('geoLang')||'EN').toUpperCase();
+let GEO_TRANSLATE = (localStorage.getItem('geoTranslate')||'off')==='on';
+let TRANS_ON = (localStorage.getItem('transGlobalOn')||'off')==='on';
+let TRANS_LANG = (localStorage.getItem('transLang')||'en');
+
+function setGeoStatus(t){ const el=document.getElementById('geoFeedStatus'); if(el) el.textContent=t; }
+function wrapTranslate(u){
+  try{ new URL(u); }catch(_){ return u; }
+  if(!TRANS_ON) return u;
+  if(BACKEND_ON){ return u; } // with backend we translate page text on-demand, keep original URL
+  const tl = (TRANS_LANG||'en').toLowerCase();
+  return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(tl)}&u=${encodeURIComponent(u)}`;
+}
+async function loadGeoCompact(force){
+  const err = document.getElementById('geoError');
+  const list = document.getElementById('geoTopicsList');
+  if(err){ err.style.display='none'; err.textContent=''; }
+  if(list) list.innerHTML='';
+  setGeoStatus('lädt…');
+  try{
+    const r = await fetch('/api/geo_feed?lang='+encodeURIComponent(GEO_LANG));
+    const j = await r.json();
+    let items = Array.isArray(j.items)? j.items.slice(0,6):[];
+    items = financeOnly(items).slice(0,6);
+    let bullets = [];
+    // Ask AI for compact bullets
+    const sres = await fetch('/api/summary', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ items, lang: GEO_LANG })
+    });
+    const sj = await sres.json().catch(()=>({}));
+    if(Array.isArray(sj.bullets) && sj.bullets.length) bullets = sj.bullets.slice(0, items.length);
+    // Render
+    const ul = list;
+    if(ul){
+      for(let i=0;i<items.length;i++){
+        const it = items[i];
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = wrapTranslate(it.url || '#'); a.target='_blank'; a.rel='noopener';
+        a.textContent = `${(it.domain||new URL(it.url).hostname.replace(/^www\\./,''))} – ${(it.title||'').slice(0,120)}`;
+        li.textContent = `• ${(bullets[i]|| (it.title||'').slice(0,100))} (`;
+        li.appendChild(a); li.appendChild(document.createTextNode(')'));
+        ul.appendChild(li);
+      }
+    }
+    setGeoStatus('aktualisiert');
+  }catch(e){
+    if(err){ err.style.display='block'; err.textContent='Geo-Feed Fehler: '+ (e.message||e); }
+    setGeoStatus('Fehler');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{const langSel = document.getElementById('geoLang');
+  if(langSel){ langSel.value=GEO_LANG; langSel.addEventListener('change', ()=>{ GEO_LANG=langSel.value.toUpperCase(); localStorage.setItem('geoLang',GEO_LANG); loadGeoCompact(true); }); 
+  // Try inline translation once initial content is present
+  setTimeout(applyTranslatorInline, 50);
+}
+  const tgl = document.getElementById('geoTranslateToggle');
+  if(tgl){ tgl.checked=GEO_TRANSLATE; tgl.addEventListener('change', ()=>{ GEO_TRANSLATE=!!tgl.checked; localStorage.setItem('geoTranslate', GEO_TRANSLATE?'on':'off'); }); }
+  document.getElementById('geoReload')?.addEventListener('click', ()=> loadGeoCompact(true) );
+  loadGeoCompact(true);
+});
+
+// Apply translator wrapping to DYOR & other external links at render time
+async function applyTranslatorInline(){
+  if(!BACKEND_ON || !TRANS_ON) return;
+  const tl = (TRANS_LANG||'en').toLowerCase();
+  // translate geo bullets inline
+  const ul = document.getElementById('geoBullets');
+  if(ul){
+    const items = Array.from(ul.querySelectorAll('li'));
+    for(const li of items){
+      const t = li.textContent.trim();
+      const out = await translateTextAI(t, tl);
+      if(out) li.textContent = out;
+    }
+  }
+}
+const _open = window.open;
+window.open = function(u, name, opts){ return _open.call(window, wrapTranslate(u), name, opts); };
+
+
+// Settings: add GBP/JPY + translator
+function populateSettingsExtras(){
+  // currencies
+  const ccys = ['EUR','USD','GBP','JPY'];
+  const current = (CURRENCY||'EUR').toUpperCase();
+  ccys.forEach(code=>{
+    const r = document.getElementById('ccy_'+code.toLowerCase());
+    if(r) r.checked = (code===current);
+  });
+  // translator
+  const tg = document.getElementById('transGlobalToggle'); if(tg) tg.checked = TRANS_ON;
+  const langs = ['en','de','es','fr','it','pl','ru'];
+  const curL = (TRANS_LANG||'en').toLowerCase();
+  langs.forEach(l=>{ const r = document.getElementById('tr_'+l); if(r) r.checked = (l===curL); });
+}
+const _populateSettingsOrig = (typeof populateSettings==='function') ? populateSettings : null;
+if(_populateSettingsOrig){
+  window.populateSettings = function(){ _populateSettingsOrig(); populateSettingsExtras(); }
+} else {
+  window.populateSettings = populateSettingsExtras;
+}
+const _onSettingsSubmitOrig = (typeof onSettingsSubmit==='function') ? onSettingsSubmit : null;
+if(_onSettingsSubmitOrig){
+  window.onSettingsSubmit = function(e){
+    _onSettingsSubmitOrig(e);
+    const tg = document.getElementById('transGlobalToggle'); TRANS_ON = !!(tg && tg.checked); localStorage.setItem('transGlobalOn', TRANS_ON?'on':'off');
+    const langs = ['en','de','es','fr','it','pl','ru']; for(const l of langs){ const r=document.getElementById('tr_'+l); if(r && r.checked){ TRANS_LANG=l; break; } }
+    localStorage.setItem('transLang', TRANS_LANG);
+  }
+}
+
+
+// ===== Chart‑Playground =====
+const CG_IDS = {'BTC':'bitcoin','ETH':'ethereum','BNB':'binancecoin','SOL':'solana','XRP':'ripple','ADA':'cardano','DOGE':'dogecoin','AVAX':'avalanche-2','TRX':'tron'};
+function symToId(sym){ sym=String(sym||'').trim().toUpperCase(); return CG_IDS[sym] || (lastCoins.find(c=>c.symbol===sym)?.id) || 'bitcoin'; }
+
+function drawLine(ctx, pts){ ctx.beginPath(); pts.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); }); ctx.stroke(); }
+function drawChart({candles, fib, elliott}){
+  const canvas = document.getElementById('chartCanvas'); const ctx = canvas.getContext('2d');
+  const w = canvas.clientWidth, h = canvas.height; canvas.width = w;
+  ctx.clearRect(0,0,w,h);
+  if(!candles || !candles.length){ return; }
+  const pad=16; const xs = candles.length;
+  const lows = candles.map(c=>c[3]), highs=candles.map(c=>c[2]);
+  const lo = Math.min(...lows), hi = Math.max(...highs);
+  const xStep = (w - pad*2) / Math.max(1, xs-1);
+  const yScale = (h - pad*2) / (hi - lo || 1);
+  // wick + body
+  ctx.lineWidth = 1;
+  candles.forEach((c,i)=>{
+    const [t,o,hhi,llo,cl] = c;
+    const x = pad + i*xStep;
+    const yO = h - pad - (o - lo)*yScale;
+    const yC = h - pad - (cl - lo)*yScale;
+    const yH = h - pad - (hhi - lo)*yScale;
+    const yL = h - pad - (llo - lo)*yScale;
+    // wick
+    ctx.beginPath(); ctx.moveTo(x, yH); ctx.lineTo(x, yL); ctx.stroke();
+    // body
+    ctx.fillStyle = (cl>=o) ? '#16a34a' : '#dc2626';
+    const bodyH = Math.max(1, Math.abs(yC - yO));
+    ctx.fillRect(x-2, Math.min(yC, yO), 4, bodyH);
+  });
+  // FIB
+  if(fib){
+    const { hiP, loP } = fib;
+    const yHi = h - pad - (hiP - lo)*yScale, yLo = h - pad - (loP - lo)*yScale;
+    const levels = [0,0.236,0.382,0.5,0.618,0.786,1];
+    ctx.save(); ctx.globalAlpha=0.8; ctx.lineWidth=1;
+    levels.forEach(L=>{
+      const y = yHi + (yLo - yHi)*L;
+      ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w-pad, y); ctx.stroke();
+      ctx.fillStyle = '#94a3b8'; ctx.font='10px system-ui'; ctx.fillText((L*100).toFixed(1)+'%', pad+4, y-2);
+    });
+    ctx.restore();
+  }
+  // Elliott naive overlay
+  if(elliott && elliott.points && elliott.points.length){
+    const pts = elliott.points.map(([i,price])=>[ pad + i*xStep, h - pad - (price - lo)*yScale ]);
+    ctx.save(); ctx.lineWidth=2; drawLine(ctx, pts); ctx.restore();
+  }
+}
+
+async function loadChart(sym, days){
+  try{
+    document.getElementById('chartStatus').textContent='lädt…';
+    const id = symToId(sym);
+    const url = `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=${encodeURIComponent(CURRENCY)}&days=${encodeURIComponent(days)}`;
+    const r = await fetchWithTimeout(url,{timeoutMs:9000}); if(!r.ok) throw new Error('CG OHLC '+r.status);
+    const data = await r.json(); // [time, open, high, low, close]
+    drawChart({ candles: data });
+    document.getElementById('chartStatus').textContent='ok';
+    return data;
+  }catch(e){
+    console.warn(e); document.getElementById('chartStatus').textContent='Fehler';
+    return [];
+  }
+}
+// Fib from recent swing high/low
+function calcFib(candles){
+  if(!candles.length) return null;
+  const highs=candles.map(c=>c[2]), lows=candles.map(c=>c[3]);
+  const hiP=Math.max(...highs), loP=Math.min(...lows);
+  return {hiP, loP};
+}
+// very naive Elliott via ZigZag threshold 4%
+function suggestElliott(candles){
+  if(!candles.length) return {points:[]};
+  const closes = candles.map(c=>c[4]);
+  const thr = 0.04;
+  const pts = [];
+  let dir=0, last=closes[0], lastIdx=0;
+  for(let i=1;i<closes.length;i++){
+    const p = closes[i];
+    const chg = (p-last)/last;
+    if(dir>=0 && chg<=-thr){ pts.push([lastIdx,last]); dir=-1; last=p; lastIdx=i; }
+    else if(dir<=0 && chg>=thr){ pts.push([lastIdx,last]); dir=1; last=p; lastIdx=i; }
+    if(Math.abs(chg)>thr) { last=p; lastIdx=i; }
+  }
+  pts.push([closes.length-1, closes[closes.length-1]]);
+  return {points: pts.slice(0,9)};
+}
+
+// UI wiring
+document.getElementById('chartLoadBtn').addEventListener('click', async ()=>{
+  const sym = document.getElementById('chartSymbol').value || 'BTC';
+  const days = parseInt(document.getElementById('chartDays').value,10)||30;
+  const data = await loadChart(sym, days);
+  window._chartCandles = data;
+});
+document.getElementById('chartFibBtn').addEventListener('click', ()=>{
+  if(!_chartCandles || !_chartCandles.length) return;
+  const fib = calcFib(_chartCandles);
+  drawChart({candles:_chartCandles, fib});
+});
+document.getElementById('chartElliottBtn').addEventListener('click', ()=>{
+  if(!_chartCandles || !_chartCandles.length) return;
+  const ell = suggestElliott(_chartCandles);
+  drawChart({candles:_chartCandles, elliott: ell});
+});
+
+
+document.getElementById('chartAIAnalyzeBtn').addEventListener('click', async ()=>{
+  const el = document.getElementById('chartAIStatus');
+  if(!_chartCandles || !_chartCandles.length){ if(el) el.textContent='keine Daten'; return; }
+  if(!BACKEND_ON){ if(el) el.textContent='kein Backend'; return; }
+  el.textContent='KI…';
+  const resp = await analyzeChartAI(_chartCandles, { fib:true, waves:true });
+  if(!resp){ el.textContent='Fehler'; return; }
+  drawChart({ candles:_chartCandles, fib: resp.fib, elliott: { points: (resp.waves||[]).map(w=>[w.i, w.price]) } });
+  el.textContent='ok';
+});
+</script>
+
+<div id="cardOverlay" class="overlay" aria-hidden="true">
+  <div class="overlay-card">
+    <button class="btn close" id="overlayClose" aria-label="Schließen">×</button>
+    <div id="overlayContent"></div>
+  </div>
+</div>
+
+
+<script>
+;(()=>{
+  "use strict";
+
+  // --- Finance/Krypto-Filter (global, non-breaking)
+  if(!window.FINANCE_RE){
+    window.FINANCE_RE = /(bitcoin|crypto|blockchain|mining|btc|eth|ethereum|stablecoin|altcoin|defi|etf|sec|spot\s*etf|futures|exchange|binance|coinbase|kraken|okx|wallet|liquidity|onchain|token|staking|airdrop|halving|hashrate|gas fee|mempool|treasury|bond|yield|interest|rate|fed|ecb|cpi|ppi|inflation|gdp|tariff|sanction|fx|forex|currency|usd|eur|gbp|jpy|yuan|yen|oil|gold|nasdaq|s&p|dow|volatility|market cap|marketcap)/i;
+  }
+  if(typeof window.financeOnly!=='function'){
+    window.financeOnly = function(arr){
+      try{ return (Array.isArray(arr)?arr:[]).filter(it=> window.FINANCE_RE.test(String((it&&it.title)||""))); }
+      catch(_){ return Array.isArray(arr)?arr:[]; }
+    };
+  }
+
+  // --- Trendfarben anwenden per Toggle (localStorage('trendCards') = 'on'|'off')
+  function applyTrendBg(){
+    const on = (localStorage.getItem('trendCards')||'off')==='on';
+    document.body.classList.toggle('trend-on', on);
+    if(!on) return;
+    document.querySelectorAll('.coin[data-change]').forEach(c=>{
+      c.classList.remove('trend-up','trend-mid','trend-down');
+      const v = parseFloat(String(c.getAttribute('data-change')).replace(',','.')) || 0;
+      c.classList.add(v>1.5 ? 'trend-up' : (v<-1.5 ? 'trend-down' : 'trend-mid'));
+    });
+  }
+  window.applyTrendBg = applyTrendBg;
+
+  function bindTrendToggle(){
+    const t = document.getElementById('trendCardsToggle');
+    if(!t) return;
+    t.checked = (localStorage.getItem('trendCards')||'off')==='on';
+    t.addEventListener('change', (e)=>{
+      localStorage.setItem('trendCards', e.target.checked ? 'on':'off');
+      try{ applyTrendBg(); }catch(_){}
+    });
+  }
+
+  // Wrap renderTopCoins(list) *if it exists* to set data-change and recolor
+  function wrapRenderTopCoins(){
+    const fn = window.renderTopCoins;
+    if(typeof fn !== 'function') return;
+    if(fn.__wrapped_by_trend) return;
+    function wrapped(list){
+      const res = fn.apply(this, arguments);
+      try{
+        if(Array.isArray(list)){
+          const cards = document.querySelectorAll('.coin');
+          cards.forEach((el, idx)=>{
+            const c = list[idx] || {};
+            const ch = (typeof c.ch24==='number') ? c.ch24 :
+                       (typeof c.change_24h==='number' ? c.change_24h : 0);
+            el.setAttribute('data-change', ch);
+          });
+        }
+      }catch(_){}
+      try{ applyTrendBg(); }catch(_){}
+      return res;
+    }
+    wrapped.__wrapped_by_trend = true;
+    window.renderTopCoins = wrapped;
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    bindTrendToggle();
+    wrapRenderTopCoins();
+    try{ applyTrendBg(); }catch(_){}
+  });
+})();
+</script>
+
+</body>
+</html>
