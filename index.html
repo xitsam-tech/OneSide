@@ -1,0 +1,62 @@
+
+<!doctype html><meta charset="utf-8">
+<style>
+.trend-on .coin.trend-up   { background: rgba(34,197,94,.08);  border-color: rgba(34,197,94,.25); }
+.trend-on .coin.trend-mid  { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.25); }
+.trend-on .coin.trend-down { background: rgba(239,68,68,.08);  border-color: rgba(239,68,68,.25); }
+.coin{border:1px solid #1f2937;padding:8px;border-radius:10px;margin:4px 0}
+</style>
+<div>
+  <h3>Top Coins (<span id="vs">EUR</span>)</h3>
+  <div id="coins"></div>
+  <label><input id="trendToggle" type="checkbox"> Trendfarben</label>
+</div>
+<hr>
+<div>
+  <h3>Finance/Crypto Headlines <small id="st">–</small></h3>
+  <label>Lang:
+    <select id="lang"><option>EN</option><option>DE</option></select>
+  </label>
+  <ul id="news"></ul>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+let VS='EUR';
+let TREND= false;
+function applyTrend(){ document.body.classList.toggle('trend-on', TREND);
+  document.querySelectorAll('.coin').forEach(c=>{
+    const v=parseFloat(c.getAttribute('data-change'))||0;
+    c.classList.remove('trend-up','trend-mid','trend-down');
+    c.classList.add(v>1.5?'trend-up':(v<-1.5?'trend-down':'trend-mid'));
+  });
+}
+async function loadCoins(){
+  const r=await fetch('/api/top_coins?vs='+VS+'&limit=10'); const j=await r.json();
+  const box=$('#coins'); box.innerHTML='';
+  j.items.forEach(c=>{
+    const el=document.createElement('div'); el.className='coin'; el.setAttribute('data-change', c.ch24||0);
+    el.textContent = `${c.rank?c.rank+'. ':''}${c.symbol} ${new Intl.NumberFormat(undefined,{style:'currency',currency:VS}).format(c.price||0)} (${(c.ch24||0).toFixed(2)}%)`;
+    box.appendChild(el);
+  });
+  applyTrend();
+}
+async function loadNews(){
+  $('#st').textContent='…';
+  const r=await fetch('/api/geo_feed'); const j=await r.json();
+  const items=j.items||[]; const L=$('#lang').value;
+  const s=await fetch('/api/summary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:items.slice(0,6),lang:L})});
+  const sj=await s.json().catch(()=>({})); const bullets=Array.isArray(sj.bullets)?sj.bullets:[];
+  const ul=$('#news'); ul.innerHTML='';
+  for(let i=0;i<Math.min(items.length,4);i++){
+    const it=items[i]; const b=bullets[i] || it.title;
+    const li=document.createElement('li'); const a=document.createElement('a'); a.href=it.url; a.target='_blank'; a.textContent=it.domain+' – '+it.title.slice(0,120);
+    li.textContent='• '+b+' ('; li.appendChild(a); li.appendChild(document.createTextNode(')')); ul.appendChild(li);
+  }
+  $('#st').textContent='ok';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  $('#trendToggle').addEventListener('change', e=>{ TREND=!!e.target.checked; applyTrend(); });
+  $('#lang').addEventListener('change', loadNews);
+  loadCoins(); loadNews();
+});
+</script>
