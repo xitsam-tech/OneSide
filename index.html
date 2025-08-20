@@ -338,6 +338,10 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
       <span class="small muted" id="chartStatus"></span>
     </div>
     <canvas id="chartCanvas" height="300" style="width:100%;border:1px solid var(--border);border-radius:10px;background:var(--card)"></canvas>
+    <div class="toolbar" style="margin-top:8px">
+      <button class="btn" id="chartAIAnalyzeBtn">KI‑Analyse (Server)</button>
+      <span class="small muted" id="chartAIStatus"></span>
+    </div>
     <div class="hint small">Hinweis: Datenquelle CoinGecko. Elliott‑Erkennung ist ein einfacher Prototyp (ZigZag‑Heuristik).</div>
   </section>
 
@@ -465,6 +469,29 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 
 <script>
 // ========= Utilities / State =========
+let BACKEND_ON = false;
+async function detectBackend(){
+  try{
+    const r = await fetch('/api/health', { method:'GET' });
+    BACKEND_ON = r.ok;
+  }catch(_){ BACKEND_ON = false; }
+  return BACKEND_ON;
+}
+async function translateTextAI(text, to){
+  if(!BACKEND_ON) return null;
+  try{
+    const r = await fetch('/api/translate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text, to }) });
+    if(!r.ok) return null; const j = await r.json(); return j.text || null;
+  }catch(_){ return null; }
+}
+async function analyzeChartAI(candles, want){ 
+  if(!BACKEND_ON) return null;
+  try{
+    const r = await fetch('/api/analyze-chart', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ candles, want }) });
+    if(!r.ok) return null; return await r.json();
+  }catch(_){ return null; }
+}
+
 
 // === UI Helper Shims (safe, no logic change) ===
 if (typeof window.qs !== 'function') { window.qs = function(s, el){ return Array.from((el||document).querySelectorAll(s)); }; }
@@ -1007,7 +1034,9 @@ function onSettingsSubmit(e){
 
 // ========= Boot =========
 async function boot(){
-  applyTheme(); applyTrendBg(); applyShowExch(); layoutPad(); updateAutoLabel();
+  
+  await detectBackend();
+applyTheme(); applyTrendBg(); applyShowExch(); layoutPad(); updateAutoLabel();
   q('#hdrCount').textContent=String(COUNT);
   q('#meta-time').textContent='Stand: '+ nowV().toLocaleString('de-AT',{timeZone:TZ,hour12:false})+' · '+CURRENCY;
   q('#autoReloadToggle').checked=AUTO_RELOAD;
@@ -1064,6 +1093,11 @@ function setGeoStatus(t){ const el=document.getElementById('geoFeedStatus'); if(
 function wrapTranslate(u){
   try{ new URL(u); }catch(_){ return u; }
   if(!TRANS_ON) return u;
+  if(BACKEND_ON){ return u; } // with backend we translate page text on-demand, keep original URL
+  const tl = (TRANS_LANG||'en').toLowerCase();
+  return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(tl)}&u=${encodeURIComponent(u)}`;
+}catch(_){ return u; }
+  if(!TRANS_ON) return u;
   const tl = (TRANS_LANG||'en').toLowerCase();
   // Use Google Translate web proxy
   return `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(tl)}&u=${encodeURIComponent(u)}`;
@@ -1111,7 +1145,10 @@ async function loadGeoCompact(force){
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{const langSel = document.getElementById('geoLang');
-  if(langSel){ langSel.value=GEO_LANG; langSel.addEventListener('change', ()=>{ GEO_LANG=langSel.value.toUpperCase(); localStorage.setItem('geoLang',GEO_LANG); loadGeoCompact(true); }); }
+  if(langSel){ langSel.value=GEO_LANG; langSel.addEventListener('change', ()=>{ GEO_LANG=langSel.value.toUpperCase(); localStorage.setItem('geoLang',GEO_LANG); loadGeoCompact(true); }); 
+  // Try inline translation once initial content is present
+  setTimeout(applyTranslatorInline, 50);
+}
   const tgl = document.getElementById('geoTranslateToggle');
   if(tgl){ tgl.checked=GEO_TRANSLATE; tgl.addEventListener('change', ()=>{ GEO_TRANSLATE=!!tgl.checked; localStorage.setItem('geoTranslate', GEO_TRANSLATE?'on':'off'); }); }
   document.getElementById('geoReload')?.addEventListener('click', ()=> loadGeoCompact(true) );
@@ -1119,6 +1156,20 @@ document.addEventListener('DOMContentLoaded', ()=>{const langSel = document.getE
 });
 
 // Apply translator wrapping to DYOR & other external links at render time
+async function applyTranslatorInline(){
+  if(!BACKEND_ON || !TRANS_ON) return;
+  const tl = (TRANS_LANG||'en').toLowerCase();
+  // translate geo bullets inline
+  const ul = document.getElementById('geoBullets');
+  if(ul){
+    const items = Array.from(ul.querySelectorAll('li'));
+    for(const li of items){
+      const t = li.textContent.trim();
+      const out = await translateTextAI(t, tl);
+      if(out) li.textContent = out;
+    }
+  }
+}
 const _open = window.open;
 window.open = function(u, name, opts){ return _open.call(window, wrapTranslate(u), name, opts); };
 
@@ -1264,6 +1315,17 @@ document.getElementById('chartElliottBtn').addEventListener('click', ()=>{
   drawChart({candles:_chartCandles, elliott: ell});
 });
 
+
+document.getElementById('chartAIAnalyzeBtn').addEventListener('click', async ()=>{
+  const el = document.getElementById('chartAIStatus');
+  if(!_chartCandles || !_chartCandles.length){ if(el) el.textContent='keine Daten'; return; }
+  if(!BACKEND_ON){ if(el) el.textContent='kein Backend'; return; }
+  el.textContent='KI…';
+  const resp = await analyzeChartAI(_chartCandles, { fib:true, waves:true });
+  if(!resp){ el.textContent='Fehler'; return; }
+  drawChart({ candles:_chartCandles, fib: resp.fib, elliott: { points: (resp.waves||[]).map(w=>[w.i, w.price]) } });
+  el.textContent='ok';
+});
 </script>
 
 <div id="cardOverlay" class="overlay" aria-hidden="true">
