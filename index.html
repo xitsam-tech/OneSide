@@ -744,9 +744,84 @@ async function loadFromBinance(n, ccy){
 
 
 // ========= Load Top Coins via public APIs (CoinGecko → CoinLore → Binance) =========
-async function loadTopCoinsRemote(n = COUNT, cur = CURRENCY){
 
-// (remote loader moved to loadTopCoinsRemote())
+async function loadTopCoinsRemote(n = COUNT, cur = CURRENCY){
+  // --- 1) CoinGecko primary
+  try{
+    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${encodeURIComponent(cur)}&order=market_cap_desc&per_page=${Math.min(250, n+20)}&page=1&sparkline=true&price_change_percentage=24h,7d`;
+    const r = await fetchWithTimeout(url, {timeoutMs: 10000});
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    const arr = Array.isArray(data) ? data : [];
+
+    const isStable = (id)=> !!(STABLE_IDS && typeof STABLE_IDS.has==='function' && STABLE_IDS.has(String(id).toLowerCase()));
+    const filtered = arr.filter(c=>!isStable(c.id)).slice(0, n);
+    const sumMc = filtered.reduce((a,c)=> a + (+c.market_cap||0), 0) || 1;
+
+    const list = filtered.map(c=>({
+      id: String(c.id||'').toLowerCase(),
+      name: c.name, symbol:String(c.symbol||'').toUpperCase(), image:c.image||'',
+      price:+c.current_price||0,
+      ch24:+(c.price_change_percentage_24h||0),
+      ch7:+(c.price_change_percentage_7d_in_currency||0),
+      mc:+c.market_cap||0, vol24:+c.total_volume||0, dominance: ((+c.market_cap||0)/sumMc)*100,
+      spark7:(c.sparkline_in_7d && Array.isArray(c.sparkline_in_7d.price))?c.sparkline_in_7d.price:[],
+      athDraw:(typeof c.ath_change_percentage==='number')?Math.abs(c.ath_change_percentage):null
+    }));
+
+    lastCoins = list;
+    renderTopCoins(list);
+    try{ applyTrendBg(); }catch(_){}
+
+    const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const now = nowV();
+    setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
+    setText('#topNLabel', `Top-${n} Coins`);
+    setHTML('#topNote', `<span class="ok">Quelle:</span> CoinGecko · Stablecoins ausgeschlossen · Währung: <b>${cur}</b>`);
+    setText('#globalStatus', 'Fertig');
+    try{ updateCryptoPulse('COINGECKO'); refreshPulseExtras(); }catch(_){/*noop*/}
+    return;
+  }catch(e1){
+    console.warn('CoinGecko fehlgeschlagen – Fallback CoinLore', e1);
+  }
+
+  // --- 2) CoinLore fallback
+  try{
+    const list = await loadFromCoinLore(n, cur);
+    lastCoins = list;
+    renderTopCoins(list);
+    try{ applyTrendBg(); }catch(_){}
+    const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const now = nowV();
+    setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
+    setText('#topNLabel', `Top-${n} Coins`);
+    setHTML('#topNote', `<span class="ok">Quelle:</span> CoinLore (FX) · Stablecoins ausgeschlossen · Währung: <b>${cur}</b>`);
+    setText('#globalStatus', 'Fertig (Fallback 2 aktiv)');
+    try{ updateCryptoPulse('COINLORE'); refreshPulseExtras(); }catch(_){}
+    return;
+  }catch(e2){
+    console.warn('CoinLore fehlgeschlagen – Fallback Binance', e2);
+  }
+
+  // --- 3) Binance fallback (price only)
+  try{
+    const list = await loadFromBinance(n, cur);
+    lastCoins = list;
+    renderTopCoins(list);
+    try{ applyTrendBg(); }catch(_){}
+    const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const now = nowV();
+    setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
+    setText('#topNLabel', `Top-${n} Coins`);
+    setHTML('#topNote', `<span class="warn">Quelle:</span> Binance 24h Ticker (nur Preis/%24h, ohne MC/Sparkline) + FX · Währung: <b>${cur}</b>`);
+    setText('#globalStatus', 'Fertig (Fallback 3 aktiv)');
+    try{ updateCryptoPulse('BINANCE'); refreshPulseExtras(); }catch(_){/*noop*/}
+    return;
+  }catch(e3){
+    console.error('Alle Quellen fehlgeschlagen:', e3);
+    setText('#globalStatus','Fehler beim Laden (alle Quellen).');
+  }
+}
 
 // ========= Rendering =========
 function drawSpark(canvas, arr){
