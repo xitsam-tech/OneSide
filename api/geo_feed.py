@@ -1,6 +1,6 @@
 
 from http.server import BaseHTTPRequestHandler
-import json, urllib.request, urllib.error, socket, time, re
+import json, urllib.request, time, re
 from xml.etree import ElementTree as ET
 
 RSS_EN = [

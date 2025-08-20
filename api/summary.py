@@ -57,10 +57,9 @@ def bullets(titles, lang="en"):
         sys = "Antworte in Deutsch. Schreibe GENAU 4 extrem knappe Bullets (max 18 Wörter), ohne Einleitung/Outro. Fokus: Geopolitik/Makro mit Bezug zu Krypto/Finanzen."
     else:
         sys = "Answer in concise English. Write EXACTLY 4 ultra-short bullets (max 18 words), no intro/outro. Focus on geopolitics/macro with crypto/finance relevance."
-    user = "\n".join(f"- {t}" for t in titles)
+    user = "\\n".join(f"- {t}" for t in titles)
     txt, err = chat([{"role":"system","content":sys},{"role":"user","content":user}])
     if err:
-        # one retry
         txt, err = chat([{"role":"system","content":sys},{"role":"user","content":user}])
         if err: return titles, True, err
     lines = [l.strip(" -•") for l in txt.splitlines() if l.strip()][:4]

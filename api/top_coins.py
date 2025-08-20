@@ -66,7 +66,7 @@ def from_coinlore(vs="USD", limit=10):
     return out[:limit]
 
 def from_binance_fallback(vs="USD", limit=10):
-    # Use BTC, ETH, and big caps via USDT, approximate USD=USDT, convert via FX if needed.
+    # Use common large caps via USDT; USDT≈USD, then convert if needed
     raw, _ = fetch("https://api.binance.com/api/v3/ticker/24hr")
     j = to_json(raw) or []
     want = {"BTCUSDT":"BTC","ETHUSDT":"ETH","BNBUSDT":"BNB","SOLUSDT":"SOL","XRPUSDT":"XRP","ADAUSDT":"ADA","DOGEUSDT":"DOGE","TONUSDT":"TON","DOTUSDT":"DOT","TRXUSDT":"TRX"}
