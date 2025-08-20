@@ -8,174 +8,119 @@
 <style>
 :root{
   --header-extra:14px;
-  --bg:#0c0f14; --panel:#111826; --card:#0f1521; --border:#1e293b; --text:#e8edf4; --muted:#98a2b3;
+  --bg:#0b0f16; --panel:#0f1726; --card:#0c1320; --border:#1f2a3d; --text:#e8edf4; --muted:#9aa3b2;
   --accent:#60a5fa; --green:#22c55e; --red:#ef4444; --amber:#f59e0b;
-  --gap:12px; --spark-h:42px; --spark-compact-h:32px;
-  --header-h:72px;
+  --gap:12px; --spark-h:42px; --spark-compact-h:32px; --header-h:72px;
+  --radius-lg:14px; --radius-md:12px; --radius-sm:10px;
+  --shadow-elev:0 10px 30px rgba(2,6,23,.45);
+  --shadow-soft:0 6px 18px rgba(2,6,23,.30);
+  --ring:#93c5fd;
 }
 :root[data-theme="light"]{
-  --bg:#f5f7fb; --panel:#ffffff; --card:#ffffff; --border:#e5e7eb; --text:#0f172a; --muted:#64748b;
+  --bg:#f6f8fc; --panel:#fff; --card:#fff; --border:#e6eaf0; --text:#0f172a; --muted:#64748b;
   --accent:#2563eb; --green:#16a34a; --red:#dc2626; --amber:#b45309;
+  --shadow-elev:0 10px 30px rgba(0,0,0,.08);
+  --shadow-soft:0 6px 18px rgba(0,0,0,.06);
+  --ring:#2563eb;
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box; transition:background-color .18s ease,color .18s ease,border-color .18s ease}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+
 html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif}
-a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 .wrap{max-width:1400px;margin:0 auto;padding:16px}
 main{padding-top:calc(var(--header-h) + var(--header-extra));}
 
-.topbar{position:fixed;top:0;left:0;right:0;background:var(--panel);
-  border-bottom:1px solid var(--border);z-index:9999;box-shadow:0 8px 20px rgba(0,0,0,.32)}
-:root[data-theme="light"] .topbar{box-shadow:0 8px 20px rgba(0,0,0,.12)}
+/* Topbar mit Glas-Effekt */
+.topbar{position:fixed;inset:0 auto auto 0;right:0;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
+  border-bottom:1px solid var(--border);z-index:9999;box-shadow:0 8px 20px rgba(0,0,0,.25);backdrop-filter:blur(10px)}
 .head-row{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
-.title{font-weight:700}
+.title{font-weight:800;letter-spacing:.2px}
 .meta{color:var(--muted);font-size:.92rem}
 .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Buttons/Pills mit Hover/Elevation */
 .btn{display:inline-flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--border);
-  color:var(--text);padding:8px 12px;border-radius:10px;cursor:pointer}
+  color:var(--text);padding:10px 12px;border-radius:10px;cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-soft)}
+.btn:active{transform:translateY(0);box-shadow:none}
 .pill{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);
   padding:6px 10px;border-radius:999px}
 .badge{display:inline-block;border:1px solid var(--border);padding:2px 8px;border-radius:999px;font-size:.75rem;color:var(--muted);background:var(--card)}
 
-.section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:16px}
-.section h2{margin:0 0 8px 0;font-size:1rem}
-.hint{color:var(--muted);font-size:.9rem}
-.small{font-size:.82rem}
-.ok{color:var(--green)} .error{color:var(--red)}
+/* Sektionen */
+.section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:16px;box-shadow:var(--shadow-soft)}
+.section h2{margin:0 0 8px;font-size:1rem}
+.hint{color:var(--muted);font-size:.9rem} .small{font-size:.82rem}
 
+/* Karten-Grid */
 .kacheln{display:grid;gap:var(--gap)}
-@media(min-width:1200px){ .kacheln{grid-template-columns:repeat(5, minmax(0,1fr));} }
+@media(min-width:1200px){ .kacheln{grid-template-columns:repeat(5,minmax(0,1fr));} }
 @media(max-width:1199.98px){ .kacheln{grid-template-columns:repeat(auto-fit,minmax(290px,1fr));} }
 
-.coin{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
-.coin header{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.hdr-right{display:flex;gap:6px;align-items:center;white-space:nowrap;max-width:60%;overflow:hidden;text-overflow:ellipsis}
-.sym{font-weight:700}
-.muted{color:var(--muted)}
-.row{display:flex;justify-content:space-between;gap:8px;align-items:center}
-canvas.spark{width:100%;height:var(--spark-h);background:linear-gradient(180deg,#0b111a,#0b111a);border-radius:6px}
-:root[data-theme="light"] canvas.spark{background:linear-gradient(180deg,#eef2f7,#eef2f7)}
-canvas.spark.compact{height:var(--spark-compact-h)}
-.coin.compact{padding:8px}
-.badge-buzz{border:1px solid var(--accent);background:rgba(96,165,250,.12);color:var(--accent);padding:2px 6px;border-radius:999px;font-size:.72rem}
+/* Coin-Card Polish */
+.coin{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;
+  box-shadow:var(--shadow-soft);transition:transform .14s ease,box-shadow .14s ease,background-color .2s ease}
+.coin:hover{transform:translateY(-2px);box-shadow:var(--shadow-elev)}
+.coin header{display:flex;align-items:center;gap:10px}
+.sym{font-weight:800;letter-spacing:.2px}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:2px 0;border-top:1px dashed rgba(148,163,184,.18)}
+.row:first-of-type{border-top:0}
+canvas.spark{width:100%;height:42px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));border-radius:6px}
+canvas.spark.compact{height:32px}
+.price-inline{font-weight:800;margin-left:auto}
 
-.table-wrap{overflow-x:auto}
-.table{width:100%;border-collapse:collapse;table-layout:fixed}
-.table th,.table td{padding:8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
-.table th{color:var(--muted)}
-.table td.col-reason{white-space:normal}
-.col-bear{color:var(--red);font-weight:600}
-.col-base{color:var(--amber);font-weight:600}
-.col-bull{color:var(--green);font-weight:600}
-.emph{border-radius:6px;padding:2px 6px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+/* Positive/Negative */
+.pos{color:var(--green);font-weight:700} .neg{color:var(--red);font-weight:700}
 
-.disclaimer{margin-top:6px;padding:8px;border:1px dashed var(--amber);border-radius:8px;color:var(--amber);background:rgba(245,158,11,.08);font-size:.88rem}
+/* Pulse-Tiles Polish */
+.pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.pulse-grid .tile{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;box-shadow:var(--shadow-soft)}
+.pulse-grid .klabel{font-size:12px;color:var(--muted)}
+.pulse-grid .kval{font-size:22px;font-weight:800;margin-top:2px;letter-spacing:.2px}
 
-details.geo{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px}
-details.geo summary{cursor:pointer}
+/* Overlay mit sticky Close */
+.overlay{position:fixed;inset:0;background:rgba(2,6,23,.65);display:none;z-index:9999}
+.overlay.open{display:grid;place-items:center}
+.overlay-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;width:min(640px,92vw);max-height:90vh;overflow:auto;padding:16px;box-shadow:var(--shadow-elev)}
+.overlay-card .close{position:sticky;top:0;margin-left:auto;font-size:20px;line-height:20px;padding:6px 12px;border-radius:10px;background:var(--card);border:1px solid var(--border)}
 
-.modal-backdrop{position:fixed;inset:0;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,.55);z-index:10000}
-.modal-backdrop[open]{display:flex}
-.modal{background:var(--panel);border:1px solid var(--border);border-radius:18px;width:min(840px,92vw);max-height:92vh;overflow:auto;padding:16px;margin-top:6vh}
-.modal header{display:flex;justify-content:space-between;align-items:center}
-fieldset{border:1px solid var(--border);border-radius:12px;background:var(--card);padding:12px}
-legend{padding:0 8px;color:var(--muted);font-size:.85rem}
-.form-grid{display:grid;gap:14px}
-@media(min-width:768px){ .form-grid{grid-template-columns:1fr 1fr} }
-.seg{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.seg input{display:none}
-.seg label{border:1px solid var(--border);border-radius:999px;padding:6px 10px;cursor:pointer}
-.seg input:checked + label{background:var(--accent);border-color:var(--accent);color:#fff}
-.switch{display:inline-flex;align-items:center;gap:8px}
-.switch input{appearance:none;width:42px;height:24px;border-radius:999px;background:var(--border);position:relative;cursor:pointer}
-.switch input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
-.switch input:checked{background:var(--accent)}
-.switch input:checked::after{left:21px}
-.modal .actions{position:sticky;bottom:0;background:linear-gradient(180deg,transparent,var(--panel));padding-top:10px;display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
-
-/* Legal footer */
-.legal-foot{background:var(--panel);border-top:1px solid var(--border);margin-top:16px}
-.legal-foot .wrap{padding-block:16px}
-.legal-foot .row{display:flex;flex-direction:column;gap:6px}
-.legal-foot .small{font-size:.82rem;color:var(--muted)}
-.legal-foot a{color:var(--accent);text-decoration:none}
-.legal-foot a:hover{text-decoration:underline}
-
-/* legacy body pad */
-body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
-
-/* === Toggle feedback (visible ON/OFF) === */
-:root{--chip-on-bg:#16a34a;--chip-on-fg:#03140a;--chip-off-bg:#334155;--chip-off-fg:#cbd5e1;--switch-on:#2563eb;--switch-off:#1f2937}
-.switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
-.switch input{width:46px;height:26px;appearance:none;border-radius:999px;background:var(--switch-off);position:relative;outline:0;border:1px solid #0f172a}
-.switch input::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left .18s ease}
-.switch input:checked{background:var(--switch-on)}
-.switch input:checked::after{left:23px}
-.switch input + span::after{content:'AUS';display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--chip-off-bg);color:var(--chip-off-fg);font-size:.72rem}
-.switch input:checked + span::after{content:'AN';background:var(--chip-on-bg);color:var(--chip-on-fg)}
-
-
-/* Positive/Negative coloring */
-.pos{ color: var(--green); font-weight:600 }
-.neg{ color: var(--red);   font-weight:600 }
-
-/* Mobile overlay for coin details */
-.overlay{ position:fixed; inset:0; background:rgba(2,6,23,.65); display:none; z-index:9999 }
-.overlay.open{ display:grid; place-items:center }
-.overlay-card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; width:min(640px,92vw); max-height:90vh; overflow:auto; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.45) }
-.overlay-card .close{ float:right; font-size:20px; line-height:20px; padding:4px 10px; border-radius:10px }
-
-
-/* Mobile compact cards */
-@media (max-width: 640px){
-  .coin{ cursor:pointer }
-  .coin header .muted.small{ display:none } /* hide long name */
-  .coin .spark{ display:none !important }
-  .coin .row{ display:none }
-  .coin .row.price{ display:flex } /* only price visible */
+/* Focus-Ringe (A11y) */
+:where(button,[role="button"],.btn,.seg label,a,input,textarea,summary):focus-visible{
+  outline:2px solid var(--ring);outline-offset:2px;box-shadow:0 0 0 4px color-mix(in oklab,var(--ring) 20%,transparent);border-radius:10px;
 }
 
+/* Mobile Kompaktkarten */
+@media (max-width: 640px){
+  .coin{cursor:pointer;padding:10px}
+  .coin header .muted.small{display:none}
+  .coin .spark{display:none!important}
+  .coin .row{display:none}
+  .coin .row.price{display:flex}
+}
 
-/* inline price in header */
-.coin header{ align-items:center; }
-.price-inline{ font-weight:700; margin-left:auto; }
-
-
-/* === Crypto‑Pulse tiles === */
-.pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-.pulse-grid .tile{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px}
-.pulse-grid .klabel{font-size:12px;color:var(--muted)}
-.pulse-grid .kval{font-size:22px;font-weight:700;margin-top:2px}
-.pulse-grid .ksub{font-size:12px;color:var(--muted);margin-top:2px}
-.pulse-grid .red .kval{color:#ef4444}
-.pulse-grid .green .kval{color:#22c55e}
-.pulse-grid .yellow .kval{color:#eab308}
-
-/* Trendfarben für Karten */
-.trend-on .card.trend-up   { background: rgba(34,197,94,.08);  border-color: rgba(34,197,94,.25); }
-.trend-on .card.trend-mid  { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.25); }
-.trend-on .card.trend-down { background: rgba(239,68,68,.08);  border-color: rgba(239,68,68,.25); }
-
+/* Print */
+@media print{
+  .topbar,.modal-backdrop,.overlay,#settingsModal{display:none!important}
+  .wrap{max-width:none}
+  .coin{break-inside:avoid}
+}
 </style>
 
-<style>
-/* Trendfarben – Karten per Toggle (clean, isolated) */
-.trend-on .coin.trend-up   { background: rgba(34,197,94,.08) !important;  border-color: rgba(34,197,94,.25) !important; }
-.trend-on .coin.trend-mid  { background: rgba(245,158,11,.08) !important; border-color: rgba(245,158,11,.25) !important; }
-.trend-on .coin.trend-down { background: rgba(239,68,68,.08) !important;  border-color: rgba(239,68,68,.25) !important; }
-</style>
+
+
 
 </head>
 <body>
-<header class="topbar">
+<header class="topbar" role="banner">
   <div class="wrap head-row">
     <div>
       <div class="title">Krypto Marktübersicht (Top‑<span id="hdrCount">5</span> · ohne Stablecoins)</div>
-      <div class="meta" id="meta-time">Lade …</div>
-    </div>
-    <div class="toolbar">
-      <label class="pill"><input type="checkbox" id="autoReloadToggle"> <span id="autoLbl">Auto 15 min</span> <span id="autoCountdown" class="badge">–:–</span></label>
-      <button class="btn" id="refreshBtn">↻ Neu laden</button>
+          </div>
+    <div class="toolbar" role="toolbar" aria-label="Aktionen">
+      <label class="pill"><input type="checkbox" id="autoReloadToggle" aria-label="Auto-Reload umschalten"><span id="autoCountdown" class="badge">–:–</span></label>
+      <button class="btn" id="refreshBtn" aria-label="Neu laden">↻ Neu laden</button>
       <button class="btn" id="openSettingsBtn">⚙️ Einstellungen</button>
     </div>
   </div>
@@ -649,26 +594,28 @@ async function loadTrending(){
   try{ const r=await fetchWithTimeout('https://api.coingecko.com/api/v3/search/trending',{timeoutMs:8000}); const j=await r.json(); trendingIds=new Set((j.coins||[]).map(x=>x.item&&x.item.id).filter(Boolean)); }catch(e){}
 }
 
-async function loadTopCoins(){const get = (sel)=>{ try { return q ? q(sel) : document.querySelector(sel); } catch(_) { return null; } };
-  const setText = (sel,txt)=>{ const el=get(sel); if(el) el.textContent=txt; };
-  const setHTML = (sel,html)=>{ const el=get(sel); if(el) el.innerHTML=html; };
+async function loadTopCoins() {
+  const vs = (localStorage.getItem('vs') || 'EUR');            // deine gewählte Währung
+  const limit = (window.settings?.topN || 10);                 // falls du eine Top-N Einstellung hast
 
-  const cur = (typeof CURRENCY==='string' && CURRENCY) ? CURRENCY : 'EUR';
-  const vs  = cur.toLowerCase();
-  const n   = (typeof COUNT==='number' && COUNT>0) ? COUNT : 20;
-  const per = Math.min(250, n+20);
+  const res = await fetch(`/api/top_coins?vs=${encodeURIComponent(vs)}&limit=${limit}`);
+  const data = await res.json().catch(() => ({}));
+  const list = Array.isArray(data.items) ? data.items : [];
 
-  setText('#globalStatus', `Lade Top-${n} (${cur})…`);
+  // deine bestehende Renderer-Funktion
+  renderTopCoins(list);
 
-  const url =
-    `https://api.coingecko.com/api/v3/coins/markets`+
-    `?vs_currency=${encodeURIComponent(vs)}`+
-    `&order=market_cap_desc&per_page=${per}&page=1`+
-    `&sparkline=true&price_change_percentage=24h,7d`;
+  // Szenario-Modul aus genau den gleichen Daten aufbauen
+  if (typeof buildScenario === 'function') {
+    buildScenario(list);
+  }
 
-  const doFetch = (typeof fetchWithTimeout==='function')
-    ? (u)=>fetchWithTimeout(u,{timeoutMs:9000})
-    : (u)=>fetch(u,{cache:'no-store'});
+  // Trendfarben auf Karten/Coin-Elemente anwenden (falls Option aktiv)
+  if (typeof applyTrendBg === 'function') {
+    try { applyTrendBg(); } catch(_) {}
+  }
+}
+
 
   // --- 1) CoinGecko primary
   (async ()=>{
@@ -787,17 +734,13 @@ function renderTopCoins(list){
     const mom=momentumScore(c);
     const buzz=buzzSourceFor(c);
     const el=document.createElement('article'); el.className='coin'+(compact?' compact':'');
-    const header=`<header>
+	el.setAttribute('data-change', (typeof c.ch24 === 'number' ? c.ch24 : 0));
+	const header=`<header>
   <img src="${c.image||''}" alt="" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border)" onerror="this.style.display='none'">
   <div class="meta"><div class="sym">${c.symbol}</div><div class="name muted small">${c.name}</div></div>
   <div class="price-inline ${pc(c.ch24)}">${fmtCur(c.price)}</div></header>`;
   
-  
-  
-  
-  
-  
-    if(compact){
+     if(compact){
       el.innerHTML=header
         + `<div class=\"row price\"><div class=\"muted small\">Preis</div><div>${fmtCur(c.price)}</div></div>`
         + `<div class=\"row ch24\"><div class=\"muted small\">24h</div><div class=\"${pc(c.ch24)}\">${fmtPct(c.ch24)}</div></div>`
@@ -821,6 +764,7 @@ function renderTopCoins(list){
     else { const ctx=canvas.getContext('2d'); ctx.fillText('–',6,16); }
   }
   buildScenario(list);
+  try { applyTrendBg(); } catch(_) {}
 }
 
 
