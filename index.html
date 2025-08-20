@@ -156,13 +156,15 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
 .trend-on .card.trend-mid  { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.25); }
 .trend-on .card.trend-down { background: rgba(239,68,68,.08);  border-color: rgba(239,68,68,.25); }
 
+</style>
 
-/* Trendfarben – Karten per Toggle */
+<style>
+/* Trendfarben – Karten per Toggle (clean, isolated) */
 .trend-on .coin.trend-up   { background: rgba(34,197,94,.08) !important;  border-color: rgba(34,197,94,.25) !important; }
 .trend-on .coin.trend-mid  { background: rgba(245,158,11,.08) !important; border-color: rgba(245,158,11,.25) !important; }
 .trend-on .coin.trend-down { background: rgba(239,68,68,.08) !important;  border-color: rgba(239,68,68,.25) !important; }
-
 </style>
+
 </head>
 <body>
 <header class="topbar">
@@ -399,19 +401,15 @@ let lastCoins=[]; let trendingIds=new Set();
 let autoTimer=null; let nextReloadAt=null; let countdownTimer=null;
 
 function applyTheme(){ document.documentElement.setAttribute('data-theme',THEME); }
-
 function applyTrendBg(){
-  const on = (localStorage.getItem('trendCards')||'off')==='on';
-  document.body.classList.toggle('trend-on', on);
-  if(!on) return;
-  document.querySelectorAll('.coin[data-change]').forEach(c=>{
+  document.body.classList.toggle('trend-on',!!TREND_BG);
+  if(!TREND_BG) return;
+  document.querySelectorAll('.card[data-change]').forEach(c=>{
     c.classList.remove('trend-up','trend-mid','trend-down');
     const v = parseFloat(String(c.getAttribute('data-change')).replace(',','.')) || 0;
     c.classList.add(v>1.5?'trend-up':(v<-1.5?'trend-down':'trend-mid'));
   });
 }
-
-
 function applyShowExch(){ const sec=document.getElementById('exchangesSection'); if(sec){ sec.style.display = SHOW_EXCH ? '' : 'none'; } }
 function updateAutoLabel(){ const el=q('#autoLbl'); if(el) el.textContent='Auto '+AUTO_MIN+' min'; }
 function updateCountdown(){
@@ -556,6 +554,8 @@ async function fetchWithTimeout(url,opts={}){
 
   }
 }
+
+
 // --- Fallback helpers: FX + CoinLore + Binance ---
 async function fxUSDto(ccy){
   ccy = (ccy||'EUR').toUpperCase();
@@ -821,7 +821,6 @@ function renderTopCoins(list){
     else { const ctx=canvas.getContext('2d'); ctx.fillText('–',6,16); }
   }
   buildScenario(list);
-  try{ applyTrendBg(); }catch(_){}
 }
 
 
@@ -1094,6 +1093,78 @@ if(_onSettingsSubmitOrig){
     <div id="overlayContent"></div>
   </div>
 </div>
+
+
+<script>
+;(()=>{
+  "use strict";
+
+  // --- Finance/Krypto-Filter (global, non-breaking)
+  if(!window.FINANCE_RE){
+    window.FINANCE_RE = /(bitcoin|crypto|blockchain|mining|btc|eth|ethereum|stablecoin|altcoin|defi|etf|sec|spot\s*etf|futures|exchange|binance|coinbase|kraken|okx|wallet|liquidity|onchain|token|staking|airdrop|halving|hashrate|gas fee|mempool|treasury|bond|yield|interest|rate|fed|ecb|cpi|ppi|inflation|gdp|tariff|sanction|fx|forex|currency|usd|eur|gbp|jpy|yuan|yen|oil|gold|nasdaq|s&p|dow|volatility|market cap|marketcap)/i;
+  }
+  if(typeof window.financeOnly!=='function'){
+    window.financeOnly = function(arr){
+      try{ return (Array.isArray(arr)?arr:[]).filter(it=> window.FINANCE_RE.test(String((it&&it.title)||""))); }
+      catch(_){ return Array.isArray(arr)?arr:[]; }
+    };
+  }
+
+  // --- Trendfarben anwenden per Toggle (localStorage('trendCards') = 'on'|'off')
+  function applyTrendBg(){
+    const on = (localStorage.getItem('trendCards')||'off')==='on';
+    document.body.classList.toggle('trend-on', on);
+    if(!on) return;
+    document.querySelectorAll('.coin[data-change]').forEach(c=>{
+      c.classList.remove('trend-up','trend-mid','trend-down');
+      const v = parseFloat(String(c.getAttribute('data-change')).replace(',','.')) || 0;
+      c.classList.add(v>1.5 ? 'trend-up' : (v<-1.5 ? 'trend-down' : 'trend-mid'));
+    });
+  }
+  window.applyTrendBg = applyTrendBg;
+
+  function bindTrendToggle(){
+    const t = document.getElementById('trendCardsToggle');
+    if(!t) return;
+    t.checked = (localStorage.getItem('trendCards')||'off')==='on';
+    t.addEventListener('change', (e)=>{
+      localStorage.setItem('trendCards', e.target.checked ? 'on':'off');
+      try{ applyTrendBg(); }catch(_){}
+    });
+  }
+
+  // Wrap renderTopCoins(list) *if it exists* to set data-change and recolor
+  function wrapRenderTopCoins(){
+    const fn = window.renderTopCoins;
+    if(typeof fn !== 'function') return;
+    if(fn.__wrapped_by_trend) return;
+    function wrapped(list){
+      const res = fn.apply(this, arguments);
+      try{
+        if(Array.isArray(list)){
+          const cards = document.querySelectorAll('.coin');
+          cards.forEach((el, idx)=>{
+            const c = list[idx] || {};
+            const ch = (typeof c.ch24==='number') ? c.ch24 :
+                       (typeof c.change_24h==='number' ? c.change_24h : 0);
+            el.setAttribute('data-change', ch);
+          });
+        }
+      }catch(_){}
+      try{ applyTrendBg(); }catch(_){}
+      return res;
+    }
+    wrapped.__wrapped_by_trend = true;
+    window.renderTopCoins = wrapped;
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    bindTrendToggle();
+    wrapRenderTopCoins();
+    try{ applyTrendBg(); }catch(_){}
+  });
+})();
+</script>
 
 </body>
 </html>
