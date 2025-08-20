@@ -439,6 +439,8 @@ if (typeof window.cur === 'undefined') { try{ window.cur = (typeof CURRENCY!=='u
 
 
 const TZ='Europe/Vienna';
+
+const USE_LOCAL_API = false; // set true if backend /api is available
 const STABLE_IDS=new Set(['tether','usd-coin','binance-usd','dai','true-usd','frax','pax-dollar','usdd','first-digital-usd','fdusd','lusd','usde','gusd','usdp','paypal-usd']);
 function q(s,el){return (el||document).querySelector(s)}; function qa(s,el){return Array.from((el||document).querySelectorAll(s));}
 function nowV(){ return new Date(new Date().toLocaleString('en-US',{timeZone:TZ})) }
@@ -707,7 +709,8 @@ async function loadTrending(){
 }
 
 async function loadTopCoins() {
-  const vs = (localStorage.getItem('vs') || 'EUR');            // deine gewählte Währung
+  if(!window.USE_LOCAL_API){ return; }
+const vs = (localStorage.getItem('vs') || 'EUR');            // deine gewählte Währung
   const limit = (window.settings?.topN || 10);                 // falls du eine Top-N Einstellung hast
 
   const res = await fetch(`/api/top_coins?vs=${encodeURIComponent(vs)}&limit=${limit}`);
@@ -732,9 +735,10 @@ async function loadTopCoins() {
   // --- 1) CoinGecko primary
   (async ()=>{
     try{
-      const r = await doFetch(url);
-      if(!r.ok) throw new Error(`HTTP ${r.status}`);
-      const data = await r.json();
+      const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${encodeURIComponent(cur)}&order=market_cap_desc&per_page=${Math.min(250, n+20)}&page=1&sparkline=true&price_change_percentage=24h,7d`;
+const r = await fetchWithTimeout(url, {timeoutMs: 10000});
+if(!r.ok) throw new Error(`HTTP ${r.status}`);
+const data = await r.json();
       const arr = Array.isArray(data) ? data : [];
 
       const isStable = (id)=> !!(STABLE_IDS && typeof STABLE_IDS.has==='function' && STABLE_IDS.has(id));
@@ -1000,7 +1004,7 @@ async function boot(){
   setAutoReload(AUTO_RELOAD); if(!countdownTimer){ countdownTimer=setInterval(updateCountdown,1000); }
   renderExchanges();
   await Promise.allSettled([loadTrending(), loadFGI()]);
-  await loadTopCoins();
+  await (USE_LOCAL_API ? loadTopCoins() : Promise.resolve());
   
 }
 
