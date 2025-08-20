@@ -319,6 +319,28 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
     <div id="exchList" class="kacheln" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div>
     <div class="hint small">Ref‑Links lokal gespeichert. API‑Verbindungen folgen später.</div>
   </section>
+
+  <!-- Chart‑Playground (leichtgewichtig) -->
+  <section class="section" id="chartLab">
+    <h2>Chart‑Playground (Beta)</h2>
+    <div class="toolbar" role="group" aria-label="Chart Controls">
+      <input type="text" id="chartSymbol" placeholder="BTC" class="pill" style="padding:8px 12px" />
+      <select id="chartDays" class="pill" aria-label="Zeitraum">
+        <option value="7">7d</option>
+        <option value="30" selected>30d</option>
+        <option value="90">90d</option>
+        <option value="180">180d</option>
+        <option value="365">365d</option>
+      </select>
+      <button class="btn" id="chartLoadBtn">Daten laden</button>
+      <button class="btn" id="chartFibBtn">Fib Retracement</button>
+      <button class="btn" id="chartElliottBtn">Elliott (naiv)</button>
+      <span class="small muted" id="chartStatus"></span>
+    </div>
+    <canvas id="chartCanvas" height="300" style="width:100%;border:1px solid var(--border);border-radius:10px;background:var(--card)"></canvas>
+    <div class="hint small">Hinweis: Datenquelle CoinGecko. Elliott‑Erkennung ist ein einfacher Prototyp (ZigZag‑Heuristik).</div>
+  </section>
+
 </main>
 
 <!-- Einstellungen -->
@@ -388,7 +410,23 @@ body[data-pad='on']{padding-top:calc(var(--header-h) + var(--header-extra));}
             <input type="radio" id="tr_ru" name="translang" value="ru"><label for="tr_ru">RU</label>
           </div>
         </fieldset>
-      </div>
+      
+        <fieldset>
+          <legend>Übersetzer</legend>
+          <label class="switch"><input type="checkbox" id="transGlobalToggle"><span>Globaler Webseiten‑Übersetzer</span></label>
+          <div class="small" style="margin-top:8px">Zielsprache</div>
+          <div class="seg">
+            <input type="radio" id="tr_en" name="trlang" value="en"><label for="tr_en">EN</label>
+            <input type="radio" id="tr_de" name="trlang" value="de"><label for="tr_de">DE</label>
+            <input type="radio" id="tr_es" name="trlang" value="es"><label for="tr_es">ES</label>
+            <input type="radio" id="tr_fr" name="trlang" value="fr"><label for="tr_fr">FR</label>
+            <input type="radio" id="tr_it" name="trlang" value="it"><label for="tr_it">IT</label>
+            <input type="radio" id="tr_pl" name="trlang" value="pl"><label for="tr_pl">PL</label>
+            <input type="radio" id="tr_ru" name="trlang" value="ru"><label for="tr_ru">RU</label>
+          </div>
+          <div class="hint small">Ohne KI‑API: Google‑Translate‑Proxy. Für KI‑Übersetzung kann später ein eigener Endpoint hinterlegt werden.</div>
+        </fieldset>
+    </div>
       <div class="actions">
         <button type="button" class="btn" id="cancelSettingsBtn">Abbrechen</button>
         <button type="submit" class="btn">✔ Speichern</button>
@@ -463,7 +501,7 @@ function applyTheme(){ document.documentElement.setAttribute('data-theme',THEME)
 function applyTrendBg(){
   document.body.classList.toggle('trend-on',!!TREND_BG);
   if(!TREND_BG) return;
-  document.querySelectorAll('.card[data-change]').forEach(c=>{
+  document.querySelectorAll('.coin[data-change]').forEach(c=>{
     c.classList.remove('trend-up','trend-mid','trend-down');
     const v = parseFloat(String(c.getAttribute('data-change')).replace(',','.')) || 0;
     c.classList.add(v>1.5?'trend-up':(v<-1.5?'trend-down':'trend-mid'));
@@ -704,116 +742,11 @@ async function loadFromBinance(n, ccy){
 }
 
 
-async function loadTrending(){
-  try{ const r=await fetchWithTimeout('https://api.coingecko.com/api/v3/search/trending',{timeoutMs:8000}); const j=await r.json(); trendingIds=new Set((j.coins||[]).map(x=>x.item&&x.item.id).filter(Boolean)); }catch(e){}
-}
 
-async function loadTopCoins() {
-  if(!window.USE_LOCAL_API){ return; }
-const vs = (localStorage.getItem('vs') || 'EUR');            // deine gewählte Währung
-  const limit = (window.settings?.topN || 10);                 // falls du eine Top-N Einstellung hast
+// ========= Load Top Coins via public APIs (CoinGecko → CoinLore → Binance) =========
+async function loadTopCoinsRemote(n = COUNT, cur = CURRENCY){
 
-  const res = await fetch(`/api/top_coins?vs=${encodeURIComponent(vs)}&limit=${limit}`);
-  const data = await res.json().catch(() => ({}));
-  const list = Array.isArray(data.items) ? data.items : [];
-
-  // deine bestehende Renderer-Funktion
-  renderTopCoins(list);
-
-  // Szenario-Modul aus genau den gleichen Daten aufbauen
-  if (typeof buildScenario === 'function') {
-    buildScenario(list);
-  }
-
-  // Trendfarben auf Karten/Coin-Elemente anwenden (falls Option aktiv)
-  if (typeof applyTrendBg === 'function') {
-    try { applyTrendBg(); } catch(_) {}
-  }
-}
-
-
-  // --- 1) CoinGecko primary
-  (async ()=>{
-    try{
-      const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${encodeURIComponent(cur)}&order=market_cap_desc&per_page=${Math.min(250, n+20)}&page=1&sparkline=true&price_change_percentage=24h,7d`;
-const r = await fetchWithTimeout(url, {timeoutMs: 10000});
-if(!r.ok) throw new Error(`HTTP ${r.status}`);
-const data = await r.json();
-      const arr = Array.isArray(data) ? data : [];
-
-      const isStable = (id)=> !!(STABLE_IDS && typeof STABLE_IDS.has==='function' && STABLE_IDS.has(id));
-      const filtered = arr.filter(c=>!isStable(c.id)).slice(0, n);
-      const sumMc = filtered.reduce((a,c)=> a + (+c.market_cap||0), 0) || 1;
-
-      const list = filtered.map(c=>({
-        id:c.id, name:c.name, symbol:String(c.symbol||'').toUpperCase(), image:c.image||'',
-        price:+c.current_price||0, ch24:+(c.price_change_percentage_24h||0), ch7:+(c.price_change_percentage_7d_in_currency||0),
-        mc:+c.market_cap||0, vol24:+c.total_volume||0, dominance: ((+c.market_cap||0)/sumMc)*100,
-        spark7:(c.sparkline_in_7d && Array.isArray(c.sparkline_in_7d.price))?c.sparkline_in_7d.price:[],
-        athDraw:(typeof c.ath_change_percentage==='number')?Math.abs(c.ath_change_percentage):null
-      }));
-
-      lastCoins = list;
-      renderTopCoins(list);
-      const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const now = nowV();
-      setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
-      setText('#topNLabel', `Top-${n} Coins`);
-      setHTML('#topNote', `<span class="ok">Quelle:</span> CoinGecko · Stablecoins ausgeschlossen · Währung: <b>${cur}</b>`);
-      setText('#globalStatus', 'Fertig');
-      try{ updateCryptoPulse('COINGECKO'); refreshPulseExtras(); }catch(_){/*noop*/}
-
-    }catch(e1){
-      console.warn('CoinGecko fehlgeschlagen – Fallback CoinLore', e1);
-
-      // --- 2) CoinLore fallback
-      (async ()=>{
-        try{
-          const list = await loadFromCoinLore(n, cur);
-          lastCoins = list;
-          renderTopCoins(list);
-          const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
-          const now = nowV();
-          setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
-          setText('#topNLabel', `Top-${n} Coins`);
-          setHTML('#topNote', `<span class="ok">Quelle:</span> CoinLore + exchangerate.host (FX) · Stablecoins ausgeschlossen · Währung: <b>${cur}</b>`);
-          setText('#globalStatus', 'Fertig (Fallback 2 aktiv)');
-        try{ updateCryptoPulse('COINLORE'); refreshPulseExtras(); }catch(_){}
-
-        }catch(e2){
-          console.warn('CoinLore fehlgeschlagen – Fallback Binance', e2);
-
-          // --- 3) Binance fallback (price only)
-          try{
-            const list = await loadFromBinance(n, cur);
-            lastCoins = list;
-            renderTopCoins(list);
-            const tz = TZ || Intl.DateTimeFormat().resolvedOptions().timeZone;
-            const now = nowV();
-            setText('#ts-top', `Stand: ${now.toLocaleString('de-AT',{timeZone:tz,hour12:false})}`);
-            setText('#topNLabel', `Top-${n} Coins`);
-            setHTML('#topNote', `<span class="warn">Quelle:</span> Binance 24h Ticker (nur Preis/%24h, ohne MC/Sparkline) + FX · Währung: <b>${cur}</b>`);
-            setText('#globalStatus', 'Fertig (Fallback 3 aktiv)');
-            try{ updateCryptoPulse('BINANCE'); refreshPulseExtras(); }catch(_){/*noop*/}
-
-          }catch(e3){
-            console.error('Alle Quellen fehlgeschlagen:', e3);
-            setText('#globalStatus','Fehler beim Laden (alle Quellen).');
-          }
-        }
-      })();
-    }
-  })();
-
-
-
-async function loadFGI(){
-  try{
-    const r=await fetchWithTimeout('https://api.alternative.me/fng/?limit=1',{timeoutMs:8000}); const j=await r.json(); const d=(j&&j.data&&j.data[0])?j.data[0]:null;
-    if(d){ q('#fgiGauge').textContent='FGI: '+d.value+' – '+d.value_classification; q('#ts-fgi').textContent='Stand: '+ nowV().toLocaleString('de-AT',{timeZone:TZ,hour12:false}); q('#fgiImgWrap').style.display='none'; }
-    else throw new Error('leer');
-  }catch(e){ q('#fgiGauge').textContent='FGI Fallback-Bild'; q('#fgiImgWrap').style.display='block'; q('#ts-fgi').textContent='Stand: '+ nowV().toLocaleString('de-AT',{timeZone:TZ,hour12:false}); }
-}
+// (remote loader moved to loadTopCoinsRemote())
 
 // ========= Rendering =========
 function drawSpark(canvas, arr){
@@ -851,7 +784,9 @@ function renderTopCoins(list){
     const el=document.createElement('article'); el.className='coin'+(compact?' compact':'');
 	el.setAttribute('data-change', (typeof c.ch24 === 'number' ? c.ch24 : 0));
 	const header=`<header>
-  <img src="${c.image||''}" alt="" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border)" onerror="this.style.display='none'">
+  <img src="${c.image||''}
+  try{ applyTrendBg(); }catch(_){}
+" alt="" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border)" onerror="this.style.display='none'">
   <div class="meta"><div class="sym">${c.symbol}</div><div class="name muted small">${c.name}</div></div>
   <div class="price-inline ${pc(c.ch24)}">${fmtCur(c.price)}</div></header>`;
   
@@ -1143,6 +1078,116 @@ if(_onSettingsSubmitOrig){
     localStorage.setItem('transLang', TRANS_LANG);
   }
 }
+
+
+// ===== Chart‑Playground =====
+const CG_IDS = {'BTC':'bitcoin','ETH':'ethereum','BNB':'binancecoin','SOL':'solana','XRP':'ripple','ADA':'cardano','DOGE':'dogecoin','AVAX':'avalanche-2','TRX':'tron'};
+function symToId(sym){ sym=String(sym||'').trim().toUpperCase(); return CG_IDS[sym] || (lastCoins.find(c=>c.symbol===sym)?.id) || 'bitcoin'; }
+
+function drawLine(ctx, pts){ ctx.beginPath(); pts.forEach((p,i)=>{ if(i===0) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); }); ctx.stroke(); }
+function drawChart({candles, fib, elliott}){
+  const canvas = document.getElementById('chartCanvas'); const ctx = canvas.getContext('2d');
+  const w = canvas.clientWidth, h = canvas.height; canvas.width = w;
+  ctx.clearRect(0,0,w,h);
+  if(!candles || !candles.length){ return; }
+  const pad=16; const xs = candles.length;
+  const lows = candles.map(c=>c[3]), highs=candles.map(c=>c[2]);
+  const lo = Math.min(...lows), hi = Math.max(...highs);
+  const xStep = (w - pad*2) / Math.max(1, xs-1);
+  const yScale = (h - pad*2) / (hi - lo || 1);
+  // wick + body
+  ctx.lineWidth = 1;
+  candles.forEach((c,i)=>{
+    const [t,o,hhi,llo,cl] = c;
+    const x = pad + i*xStep;
+    const yO = h - pad - (o - lo)*yScale;
+    const yC = h - pad - (cl - lo)*yScale;
+    const yH = h - pad - (hhi - lo)*yScale;
+    const yL = h - pad - (llo - lo)*yScale;
+    // wick
+    ctx.beginPath(); ctx.moveTo(x, yH); ctx.lineTo(x, yL); ctx.stroke();
+    // body
+    ctx.fillStyle = (cl>=o) ? '#16a34a' : '#dc2626';
+    const bodyH = Math.max(1, Math.abs(yC - yO));
+    ctx.fillRect(x-2, Math.min(yC, yO), 4, bodyH);
+  });
+  // FIB
+  if(fib){
+    const { hiP, loP } = fib;
+    const yHi = h - pad - (hiP - lo)*yScale, yLo = h - pad - (loP - lo)*yScale;
+    const levels = [0,0.236,0.382,0.5,0.618,0.786,1];
+    ctx.save(); ctx.globalAlpha=0.8; ctx.lineWidth=1;
+    levels.forEach(L=>{
+      const y = yHi + (yLo - yHi)*L;
+      ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w-pad, y); ctx.stroke();
+      ctx.fillStyle = '#94a3b8'; ctx.font='10px system-ui'; ctx.fillText((L*100).toFixed(1)+'%', pad+4, y-2);
+    });
+    ctx.restore();
+  }
+  // Elliott naive overlay
+  if(elliott && elliott.points && elliott.points.length){
+    const pts = elliott.points.map(([i,price])=>[ pad + i*xStep, h - pad - (price - lo)*yScale ]);
+    ctx.save(); ctx.lineWidth=2; drawLine(ctx, pts); ctx.restore();
+  }
+}
+
+async function loadChart(sym, days){
+  try{
+    document.getElementById('chartStatus').textContent='lädt…';
+    const id = symToId(sym);
+    const url = `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=${encodeURIComponent(CURRENCY)}&days=${encodeURIComponent(days)}`;
+    const r = await fetchWithTimeout(url,{timeoutMs:9000}); if(!r.ok) throw new Error('CG OHLC '+r.status);
+    const data = await r.json(); // [time, open, high, low, close]
+    drawChart({ candles: data });
+    document.getElementById('chartStatus').textContent='ok';
+    return data;
+  }catch(e){
+    console.warn(e); document.getElementById('chartStatus').textContent='Fehler';
+    return [];
+  }
+}
+// Fib from recent swing high/low
+function calcFib(candles){
+  if(!candles.length) return null;
+  const highs=candles.map(c=>c[2]), lows=candles.map(c=>c[3]);
+  const hiP=Math.max(...highs), loP=Math.min(...lows);
+  return {hiP, loP};
+}
+// very naive Elliott via ZigZag threshold 4%
+function suggestElliott(candles){
+  if(!candles.length) return {points:[]};
+  const closes = candles.map(c=>c[4]);
+  const thr = 0.04;
+  const pts = [];
+  let dir=0, last=closes[0], lastIdx=0;
+  for(let i=1;i<closes.length;i++){
+    const p = closes[i];
+    const chg = (p-last)/last;
+    if(dir>=0 && chg<=-thr){ pts.push([lastIdx,last]); dir=-1; last=p; lastIdx=i; }
+    else if(dir<=0 && chg>=thr){ pts.push([lastIdx,last]); dir=1; last=p; lastIdx=i; }
+    if(Math.abs(chg)>thr) { last=p; lastIdx=i; }
+  }
+  pts.push([closes.length-1, closes[closes.length-1]]);
+  return {points: pts.slice(0,9)};
+}
+
+// UI wiring
+document.getElementById('chartLoadBtn').addEventListener('click', async ()=>{
+  const sym = document.getElementById('chartSymbol').value || 'BTC';
+  const days = parseInt(document.getElementById('chartDays').value,10)||30;
+  const data = await loadChart(sym, days);
+  window._chartCandles = data;
+});
+document.getElementById('chartFibBtn').addEventListener('click', ()=>{
+  if(!_chartCandles || !_chartCandles.length) return;
+  const fib = calcFib(_chartCandles);
+  drawChart({candles:_chartCandles, fib});
+});
+document.getElementById('chartElliottBtn').addEventListener('click', ()=>{
+  if(!_chartCandles || !_chartCandles.length) return;
+  const ell = suggestElliott(_chartCandles);
+  drawChart({candles:_chartCandles, elliott: ell});
+});
 
 </script>
 
