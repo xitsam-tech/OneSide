@@ -1,13 +1,8 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": true,
-  "regions": [
-    "fra1"
-  ],
+  "version": 2,
   "functions": {
-    "api/**/*.py": {
-      "memory": 128,
-      "maxDuration": 10
+    "api/*.js": {
+      "runtime": "nodejs18.x"
     }
   }
 }
