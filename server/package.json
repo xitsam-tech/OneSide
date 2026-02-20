@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node server/express-server.js"
+    "dev": "node server/express-server.js",
+    "setup": "bash ../scripts/setup.sh",
+    "check:env": "node ./scripts/check-env.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
